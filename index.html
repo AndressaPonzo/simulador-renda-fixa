@@ -24,6 +24,7 @@
     --amber: #BA7517;
     --amber-bg: #FAEEDA;
     --amber-text: #412402;
+    --red: #A32D2D;
     --radius: 8px;
     --radius-lg: 12px;
   }
@@ -37,11 +38,11 @@
       --text3: #888780;
       --border: rgba(255,255,255,0.12);
       --border2: rgba(255,255,255,0.22);
-      --green-bg: #17340420;
+      --green-bg: rgba(23,52,4,0.3);
       --green-text: #9FE1CB;
-      --blue-bg: #042C5320;
+      --blue-bg: rgba(4,44,83,0.3);
       --blue-text: #B5D4F4;
-      --amber-bg: #41240220;
+      --amber-bg: rgba(65,36,2,0.3);
       --amber-text: #FAC775;
     }
   }
@@ -58,13 +59,30 @@
     border-bottom: 0.5px solid var(--border);
     padding: 1.25rem 2rem;
     display: flex;
-    align-items: baseline;
-    gap: 1rem;
+    align-items: center;
+    justify-content: space-between;
     flex-wrap: wrap;
+    gap: 0.75rem;
   }
-  header h1 { font-size: 18px; font-weight: 500; color: var(--text); }
-  header span { font-size: 13px; color: var(--text2); }
-  .container { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem; }
+  .header-left h1 { font-size: 17px; font-weight: 500; color: var(--text); }
+  .header-left span { font-size: 12px; color: var(--text2); display: block; margin-top: 2px; }
+  .data-badge {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg2); border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg); padding: 8px 14px;
+    font-size: 12px; color: var(--text2);
+  }
+  .data-badge .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #ccc; flex-shrink: 0;
+    transition: background 0.4s;
+  }
+  .data-badge .dot.loading { background: var(--amber); animation: pulse 1s infinite; }
+  .data-badge .dot.ok { background: var(--green); }
+  .data-badge .dot.error { background: var(--red); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .container { max-width: 880px; margin: 0 auto; padding: 2rem 1.5rem; }
   .card {
     background: var(--bg);
     border: 0.5px solid var(--border);
@@ -73,42 +91,53 @@
     margin-bottom: 1.5rem;
   }
   .section-title {
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--text3);
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    margin-bottom: 1rem;
+    font-size: 11px; font-weight: 500;
+    color: var(--text3); text-transform: uppercase;
+    letter-spacing: 0.07em; margin-bottom: 1rem;
   }
+
+  /* taxas ao vivo */
+  .live-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; margin-bottom: 1.25rem; }
+  @media (max-width: 520px) { .live-grid { grid-template-columns: 1fr 1fr; } }
+  .live-card {
+    background: var(--bg2); border-radius: var(--radius);
+    padding: 12px; position: relative;
+  }
+  .live-card .lc-label { font-size: 11px; color: var(--text3); margin-bottom: 3px; }
+  .live-card .lc-val { font-size: 20px; font-weight: 500; color: var(--text); }
+  .live-card .lc-src { font-size: 10px; color: var(--text3); margin-top: 3px; }
+  .live-card .lc-badge {
+    position: absolute; top: 8px; right: 8px;
+    font-size: 9px; font-weight: 500; padding: 2px 6px;
+    border-radius: 20px; background: #C0DD97; color: #173404;
+  }
+  .live-card .lc-badge.proj { background: #B5D4F4; color: #042C53; }
+  .live-card .lc-badge.loading { background: #FAC775; color: #412402; }
+
   .inputs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1.25rem; }
   @media (max-width: 500px) { .inputs-grid { grid-template-columns: 1fr; } }
   .input-group { display: flex; flex-direction: column; gap: 6px; }
   .input-group label { font-size: 13px; color: var(--text2); }
   .input-group input[type=number], .input-group select {
-    width: 100%;
-    padding: 8px 10px;
+    width: 100%; padding: 8px 10px;
     border: 0.5px solid var(--border2);
     border-radius: var(--radius);
-    background: var(--bg);
-    color: var(--text);
-    font-size: 14px;
-    outline: none;
+    background: var(--bg); color: var(--text);
+    font-size: 14px; outline: none;
   }
   .input-group input:focus, .input-group select:focus { border-color: var(--blue); }
+
   .slider-row { display: flex; align-items: center; gap: 10px; margin-bottom: 0.85rem; }
   .slider-row label { font-size: 13px; color: var(--text2); min-width: 180px; }
-  .slider-row input[type=range] {
-    flex: 1;
-    accent-color: var(--blue);
-    height: 4px;
-    cursor: pointer;
+  .slider-row input[type=range] { flex: 1; accent-color: var(--blue); cursor: pointer; }
+  .slider-val { font-size: 13px; font-weight: 500; min-width: 56px; text-align: right; color: var(--text); }
+  .slider-row .auto-tag {
+    font-size: 10px; padding: 1px 6px; border-radius: 20px;
+    background: #C0DD97; color: #173404; white-space: nowrap;
   }
-  .slider-val { font-size: 13px; font-weight: 500; min-width: 54px; text-align: right; color: var(--text); }
-  @media (max-width: 500px) {
-    .slider-row { flex-wrap: wrap; }
-    .slider-row label { min-width: 100%; }
-  }
-  .metrics { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-bottom: 0; }
+  @media (max-width: 500px) { .slider-row { flex-wrap: wrap; } .slider-row label { min-width: 100%; } }
+
+  .metrics { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; }
   @media (max-width: 600px) { .metrics { grid-template-columns: 1fr 1fr; } }
   .metric-card { background: var(--bg2); border-radius: var(--radius); padding: 14px 12px; }
   .metric-label { font-size: 12px; color: var(--text2); margin-bottom: 4px; }
@@ -117,14 +146,14 @@
   .metric-val.green { color: var(--green); }
   .metric-val.amber { color: var(--amber); }
   .metric-val.blue { color: var(--blue); }
+
   .table-wrap { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   th {
     font-size: 11px; font-weight: 500; color: var(--text2);
     text-align: left; padding: 8px 10px;
     border-bottom: 0.5px solid var(--border);
-    white-space: nowrap;
-    background: var(--bg2);
+    background: var(--bg2); white-space: nowrap;
   }
   td { padding: 10px 10px; border-bottom: 0.5px solid var(--border); color: var(--text); }
   tr:last-child td { border-bottom: none; }
@@ -137,97 +166,110 @@
   .badge-blue { background: #B5D4F4; color: #042C53; }
   .badge-amber { background: #FAC775; color: #412402; }
   .badge-gray { background: #D3D1C7; color: #2C2C2A; }
+
   .ir-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1rem; }
   @media (max-width: 540px) { .ir-grid { grid-template-columns: 1fr; } }
-  .ir-card {
-    background: var(--bg);
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 1rem 1.25rem;
-  }
+  .ir-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; }
   .ir-card-title { font-size: 13px; font-weight: 500; margin-bottom: 10px; color: var(--text); }
-  .ir-row {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 7px 0; border-bottom: 0.5px solid var(--border);
-    font-size: 13px; color: var(--text);
-  }
+  .ir-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 0.5px solid var(--border); font-size: 13px; color: var(--text); }
   .ir-row:last-child { border-bottom: none; }
-  .ir-active {
-    background: #FAC775; color: #412402;
-    border-radius: var(--radius); padding: 3px 8px;
-    font-weight: 500; font-size: 12px;
-  }
+  .ir-active { background: #FAC775; color: #412402; border-radius: var(--radius); padding: 3px 8px; font-weight: 500; font-size: 12px; }
+
   .tip-box {
-    background: var(--bg2);
-    border-left: 3px solid var(--green);
+    background: var(--bg2); border-left: 3px solid var(--green);
     border-radius: 0 var(--radius) var(--radius) 0;
-    padding: 12px 14px;
-    margin-bottom: 0.75rem;
-    font-size: 13px;
-    color: var(--text);
-    line-height: 1.7;
+    padding: 12px 14px; margin-bottom: 0.75rem;
+    font-size: 13px; color: var(--text); line-height: 1.7;
   }
   .tip-box.tip-blue { border-color: var(--blue); }
   .tip-box.tip-amber { border-color: var(--amber); }
-  .tip-box.tip-red { border-color: #A32D2D; }
+
   .chart-wrap { position: relative; height: 240px; }
   .scenario-btns { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; }
   .scenario-btn {
-    font-size: 12px; padding: 5px 14px;
-    border-radius: 20px;
-    border: 0.5px solid var(--border2);
-    background: var(--bg);
-    color: var(--text2);
-    cursor: pointer;
-    transition: all 0.15s;
+    font-size: 12px; padding: 5px 14px; border-radius: 20px;
+    border: 0.5px solid var(--border2); background: var(--bg);
+    color: var(--text2); cursor: pointer; transition: all 0.15s;
   }
   .scenario-btn:hover { background: var(--bg2); }
-  .scenario-btn.active {
-    background: var(--bg2);
-    color: var(--text);
-    border-color: var(--blue);
-    font-weight: 500;
-  }
+  .scenario-btn.active { background: var(--bg2); color: var(--text); border-color: var(--blue); font-weight: 500; }
+
   .guide-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   @media (max-width: 560px) { .guide-grid { grid-template-columns: 1fr; } }
-  .guide-card {
-    background: var(--bg2);
-    border-radius: var(--radius);
-    padding: 14px;
-    font-size: 13px;
-    line-height: 1.6;
-    color: var(--text);
-  }
-  .guide-card h3 {
-    font-size: 13px;
-    font-weight: 500;
-    margin-bottom: 6px;
-    color: var(--text);
-  }
+  .guide-card { background: var(--bg2); border-radius: var(--radius); padding: 14px; font-size: 13px; line-height: 1.6; color: var(--text); }
+  .guide-card h3 { font-size: 13px; font-weight: 500; margin-bottom: 6px; color: var(--text); }
   .guide-card p { color: var(--text2); }
   .guide-card.highlight { border: 1.5px solid var(--green); }
+
+  .fonte-box {
+    background: var(--bg2); border: 0.5px solid var(--border);
+    border-radius: var(--radius); padding: 12px 14px;
+    font-size: 12px; color: var(--text2); line-height: 1.8;
+    margin-top: 0.75rem;
+  }
+  .fonte-box a { color: var(--blue); text-decoration: none; }
+  .fonte-box a:hover { text-decoration: underline; }
+  .fonte-box strong { color: var(--text); font-weight: 500; }
+
   footer {
-    text-align: center;
-    font-size: 12px;
-    color: var(--text3);
+    text-align: center; font-size: 12px; color: var(--text3);
     padding: 2rem 1rem 0;
   }
-  .divider { border: none; border-top: 0.5px solid var(--border); margin: 0; }
   strong { font-weight: 500; }
+  .skeleton { background: var(--bg3); border-radius: 4px; display: inline-block; animation: sk 1.2s infinite; }
+  @keyframes sk { 0%,100%{opacity:0.5} 50%{opacity:1} }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Calculadora de Renda Fixa Brasil</h1>
-  <span>Comparativo de produtos · 2026 · atualizado com projeções de mercado</span>
+  <div class="header-left">
+    <h1>Calculadora de Renda Fixa Brasil</h1>
+    <span>Comparativo de produtos com taxas atualizadas automaticamente</span>
+  </div>
+  <div class="data-badge">
+    <span class="dot loading" id="api-dot"></span>
+    <span id="api-status">Buscando taxas do Banco Central...</span>
+  </div>
 </header>
 
 <div class="container">
 
+  <!-- TAXAS AO VIVO -->
+  <div class="card">
+    <p class="section-title">taxas carregadas automaticamente — Banco Central &amp; IBGE</p>
+    <div class="live-grid">
+      <div class="live-card">
+        <div class="lc-label">Selic atual</div>
+        <div class="lc-val" id="lv-selic"><span class="skeleton" style="width:70px;height:24px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+        <div class="lc-src">BCB · SGS série 4189</div>
+        <span class="lc-badge" id="lv-selic-badge">carregando...</span>
+      </div>
+      <div class="live-card">
+        <div class="lc-label">Selic projetada Focus (12m)</div>
+        <div class="lc-val" id="lv-selic-proj"><span class="skeleton" style="width:70px;height:24px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+        <div class="lc-src">BCB · Expectativas de Mercado</div>
+        <span class="lc-badge proj" id="lv-proj-badge">carregando...</span>
+      </div>
+      <div class="live-card">
+        <div class="lc-label">IPCA acumulado 12m</div>
+        <div class="lc-val" id="lv-ipca"><span class="skeleton" style="width:70px;height:24px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+        <div class="lc-src">BCB · SGS série 13522</div>
+        <span class="lc-badge" id="lv-ipca-badge">carregando...</span>
+      </div>
+    </div>
+    <div class="fonte-box" id="fonte-box">
+      <strong>Fontes dos dados automáticos:</strong><br>
+      · <strong>Selic atual</strong> — <a href="https://api.bcb.gov.br/dados/serie/bcdata.sgs.4189/dados/ultimos/1?formato=json" target="_blank">BCB/SGS série 4189</a> — Taxa Selic anualizada base 252, último valor disponível<br>
+      · <strong>Selic projetada</strong> — <a href="https://olinda.bcb.gov.br/olinda/servico/Expectativas/versao/v1/odata/ExpectativasMercadoAnuais?$filter=Indicador eq 'Selic'&$orderby=Data desc&$top=1&$format=json" target="_blank">BCB Focus / Expectativas de Mercado</a> — Mediana das expectativas para os próximos 12 meses<br>
+      · <strong>IPCA 12m</strong> — <a href="https://api.bcb.gov.br/dados/serie/bcdata.sgs.13522/dados/ultimos/1?formato=json" target="_blank">BCB/SGS série 13522</a> — IPCA acumulado nos últimos 12 meses<br>
+      <span id="ultima-atualizacao" style="color:var(--text3)">Última atualização: carregando...</span>
+    </div>
+  </div>
+
   <!-- PARÂMETROS -->
   <div class="card">
-    <p class="section-title">parâmetros do investimento</p>
+    <p class="section-title">parâmetros ajustáveis — use os sliders para simular cenários</p>
     <div class="inputs-grid">
       <div class="input-group">
         <label>Valor investido (R$)</label>
@@ -247,44 +289,45 @@
         </select>
       </div>
     </div>
+
     <div class="slider-row">
-      <label>Selic atual (%)</label>
-      <input type="range" id="selic" min="10" max="14.5" step="0.25" value="13.25">
+      <label>Selic atual (% a.a.) <span class="auto-tag" id="tag-selic">automático</span></label>
+      <input type="range" id="selic" min="10" max="15" step="0.25" value="13.25">
       <span class="slider-val" id="selic-out">13,25%</span>
     </div>
     <div class="slider-row">
-      <label>Selic projetada ao final</label>
-      <input type="range" id="selic-proj" min="8.5" max="14.5" step="0.25" value="11.5">
+      <label>Selic projetada 12m <span class="auto-tag proj" id="tag-proj">automático</span></label>
+      <input type="range" id="selic-proj" min="8" max="15" step="0.25" value="11.5">
       <span class="slider-val" id="selic-proj-out">11,50%</span>
     </div>
     <div class="slider-row">
-      <label>IPCA projetado 12m (%)</label>
-      <input type="range" id="ipca" min="3" max="9" step="0.25" value="4.8">
+      <label>IPCA projetado 12m (%) <span class="auto-tag" id="tag-ipca">automático</span></label>
+      <input type="range" id="ipca" min="2" max="10" step="0.25" value="4.8">
       <span class="slider-val" id="ipca-out">4,80%</span>
     </div>
     <div class="slider-row">
       <label>% CDI — CDB pós-fixado</label>
       <input type="range" id="pct-cdi-cdb" min="100" max="130" step="0.5" value="112">
-      <span class="slider-val" id="pct-cdi-cdb-out">112%</span>
+      <span class="slider-val" id="pct-cdi-cdb-out">112,0%</span>
     </div>
     <div class="slider-row">
-      <label>% CDI — LCI/LCA</label>
+      <label>% CDI — LCI / LCA</label>
       <input type="range" id="pct-cdi-lci" min="82" max="98" step="0.5" value="91">
-      <span class="slider-val" id="pct-cdi-lci-out">91%</span>
+      <span class="slider-val" id="pct-cdi-lci-out">91,0%</span>
     </div>
     <div class="slider-row">
-      <label>Taxa CDB pré-fixado (%)</label>
-      <input type="range" id="taxa-pre" min="10" max="15" step="0.1" value="12.8">
+      <label>Taxa CDB pré-fixado (% a.a.)</label>
+      <input type="range" id="taxa-pre" min="9" max="16" step="0.1" value="12.8">
       <span class="slider-val" id="taxa-pre-out">12,8%</span>
     </div>
     <div class="slider-row">
-      <label>Spread IPCA+ (%)</label>
-      <input type="range" id="spread-ipca" min="4" max="9" step="0.1" value="6.5">
+      <label>Spread IPCA+ (% a.a.)</label>
+      <input type="range" id="spread-ipca" min="3" max="10" step="0.1" value="6.5">
       <span class="slider-val" id="spread-ipca-out">6,5%</span>
     </div>
   </div>
 
-  <!-- MÉTRICAS RESUMO -->
+  <!-- MÉTRICAS -->
   <div class="card">
     <p class="section-title">melhor opção no cenário configurado</p>
     <div class="metrics">
@@ -342,11 +385,11 @@
       <button class="scenario-btn" id="btn-selic-down" onclick="setScenario('selicdown')">Selic cai −1,5%</button>
     </div>
     <div class="chart-wrap">
-      <canvas id="ev-chart" role="img" aria-label="Gráfico de evolução patrimonial comparando os produtos ao longo dos meses"></canvas>
+      <canvas id="ev-chart" role="img" aria-label="Evolução patrimonial comparando os produtos ao longo dos meses"></canvas>
     </div>
   </div>
 
-  <!-- TABELA IR -->
+  <!-- IR -->
   <div class="card">
     <p class="section-title">tabela regressiva do IR — onde você está</p>
     <div class="ir-grid">
@@ -358,70 +401,180 @@
         <div class="ir-row"><span>Acima de 720 dias</span><span id="ir-721" class="badge badge-gray">15%</span></div>
       </div>
       <div class="ir-card">
-        <p class="ir-card-title">LCI / LCA — isentos de IR</p>
-        <div class="ir-row"><span>Isenção total para PF</span><span class="badge badge-green">sempre</span></div>
+        <p class="ir-card-title">LCI / LCA — isentos de IR para PF</p>
+        <div class="ir-row"><span>Isenção total</span><span class="badge badge-green">sempre</span></div>
         <div class="ir-row"><span>Prazo mínimo LCI</span><span class="badge badge-blue">90 dias</span></div>
         <div class="ir-row"><span>Prazo mínimo LCA</span><span class="badge badge-blue">90 dias</span></div>
-        <div class="ir-row"><span>IOF (resgate em &lt; 30 dias)</span><span class="badge badge-amber">evitar</span></div>
+        <div class="ir-row"><span>IOF (resgate &lt; 30 dias)</span><span class="badge badge-amber">evitar</span></div>
         <div class="ir-row"><span>Garantia FGC</span><span class="badge badge-green">até R$ 250k</span></div>
       </div>
     </div>
     <div class="tip-box tip-blue" id="ir-tip"></div>
   </div>
 
-  <!-- GUIA DE DECISÃO -->
+  <!-- EQUIVALÊNCIA -->
+  <div class="card">
+    <p class="section-title">equivalência LCI/LCA vs CDB tributado</p>
+    <div class="tip-box tip-blue" id="equiv-tip"></div>
+    <p style="font-size:13px;color:var(--text2);margin-top:10px;line-height:1.7">
+      A isenção de IR das LCIs/LCAs funciona como um "bônus invisível". Para comparar corretamente com um CDB, calcule a taxa bruta de um CDB que entregue o mesmo líquido. Isso mostra se a LCI/LCA da sua corretora está realmente competitiva.
+    </p>
+  </div>
+
+  <!-- GUIA -->
   <div class="card">
     <p class="section-title">guia de decisão — qual produto escolher</p>
     <div class="guide-grid" id="guide-grid"></div>
     <br>
-    <div class="tip-box tip-amber" id="fgc-tip">
-      <strong>Atenção ao FGC:</strong> CDBs, LCIs e LCAs são garantidos pelo Fundo Garantidor de Créditos até R$ 250.000 por CPF por instituição (limite global de R$ 1 milhão). Para valores acima disso, considere diversificar entre diferentes bancos emissores.
+    <div class="tip-box tip-amber">
+      <strong>Atenção ao FGC:</strong> CDBs, LCIs e LCAs são garantidos pelo Fundo Garantidor de Créditos até R$ 250.000 por CPF por instituição financeira (limite global de R$ 1 milhão por CPF). Para valores acima disso, diversifique entre diferentes bancos emissores.
     </div>
-  </div>
-
-  <!-- EQUIVALÊNCIA LCI/LCA -->
-  <div class="card">
-    <p class="section-title">equivalência LCI/LCA vs CDB tributado</p>
-    <div class="tip-box tip-blue" id="equiv-tip"></div>
-    <p style="font-size:13px; color: var(--text2); margin-top: 10px; line-height: 1.7;">
-      A isenção de IR das LCIs/LCAs funciona como um "bônus invisível". Para comparar corretamente com um CDB, você deve calcular a taxa bruta equivalente de um CDB que entregue o mesmo líquido. Isso mostra se a LCI/LCA da sua corretora está realmente competitiva — ou se um bom CDB de banco grande entrega mais.
-    </p>
   </div>
 
 </div>
 
 <footer>
-  <p>Calculadora para fins educacionais · Rentabilidade passada não garante retorno futuro · Consulte sempre um assessor de investimentos</p>
-  <p style="margin-top:4px">Atualizado em 2026 · Baseado em projeções do mercado brasileiro</p>
+  <p>Calculadora para fins educacionais · Rentabilidade passada não garante retorno futuro</p>
+  <p style="margin-top:4px">Dados atualizados automaticamente via API pública do Banco Central do Brasil · <a href="https://dadosabertos.bcb.gov.br" target="_blank" style="color:var(--blue)">dadosabertos.bcb.gov.br</a></p>
 </footer>
 
 <script>
+// ── estado global ──────────────────────────────────────────────────
 let evChart = null;
 let currentScenario = 'all';
+let apiLoaded = false;
 
+// ── formatação ─────────────────────────────────────────────────────
 function fmt(n) {
-  return n.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  return n.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
 }
 function fmtPct(n) {
-  return n.toFixed(2).replace('.', ',') + '%';
+  return n.toFixed(2).replace('.',',') + '%';
 }
 function getIR(meses) {
-  if (meses <= 6) return 0.225;
+  if (meses <= 6)  return 0.225;
   if (meses <= 12) return 0.20;
   if (meses <= 24) return 0.175;
   return 0.15;
 }
-function highlightIR(meses) {
-  ['ir-180','ir-360','ir-720','ir-721'].forEach(id => {
-    document.getElementById(id).className = 'badge badge-gray';
-    const labels = {'ir-180':'22,5%','ir-360':'20%','ir-720':'17,5%','ir-721':'15%'};
-    document.getElementById(id).textContent = labels[id];
-  });
-  let target = meses <= 6 ? 'ir-180' : meses <= 12 ? 'ir-360' : meses <= 24 ? 'ir-720' : 'ir-721';
-  document.getElementById(target).className = 'ir-active';
-  const labels = {'ir-180':'22,5% ◀ você está aqui','ir-360':'20% ◀ você está aqui','ir-720':'17,5% ◀ você está aqui','ir-721':'15% ◀ você está aqui'};
-  document.getElementById(target).textContent = labels[target];
+
+// ── carregar APIs do Banco Central ─────────────────────────────────
+async function fetchBCB() {
+  const dot = document.getElementById('api-dot');
+  const status = document.getElementById('api-status');
+  dot.className = 'dot loading';
+  status.textContent = 'Buscando taxas do Banco Central...';
+
+  const proxy = 'https://api.allorigins.win/get?url=';
+
+  // URLs das APIs do BCB
+  const urlSelic    = 'https://api.bcb.gov.br/dados/serie/bcdata.sgs.4189/dados/ultimos/1?formato=json';
+  const urlIPCA     = 'https://api.bcb.gov.br/dados/serie/bcdata.sgs.13522/dados/ultimos/1?formato=json';
+  const urlFocus    = 'https://olinda.bcb.gov.br/olinda/servico/Expectativas/versao/v1/odata/ExpectativasMercadoAnuais?$filter=Indicador%20eq%20\'Selic\'%20and%20Suavizado%20eq%20\'S\'&$orderby=Data%20desc&$top=5&$format=json&$select=Data,Mediana';
+
+  let selicVal = null, ipcaVal = null, selicProjVal = null;
+  let selicData = 'N/D', ipcaData = 'N/D', projData = 'N/D';
+
+  // Tenta fetch direto primeiro (funciona quando BCB tem CORS permissivo)
+  // Fallback: usa proxy allorigins
+  async function fetchJSON(url) {
+    try {
+      const r = await fetch(url, { mode: 'cors' });
+      if (r.ok) return await r.json();
+    } catch(e) {}
+    // fallback via proxy
+    try {
+      const r = await fetch(proxy + encodeURIComponent(url));
+      if (r.ok) {
+        const wrapper = await r.json();
+        return JSON.parse(wrapper.contents);
+      }
+    } catch(e) {}
+    return null;
+  }
+
+  // Busca Selic
+  try {
+    const d = await fetchJSON(urlSelic);
+    if (d && d[0] && d[0].valor) {
+      selicVal = parseFloat(d[0].valor.replace(',','.'));
+      selicData = d[0].data || '';
+    }
+  } catch(e) {}
+
+  // Busca IPCA
+  try {
+    const d = await fetchJSON(urlIPCA);
+    if (d && d[0] && d[0].valor) {
+      ipcaVal = parseFloat(d[0].valor.replace(',','.'));
+      ipcaData = d[0].data || '';
+    }
+  } catch(e) {}
+
+  // Busca Focus Selic projetada
+  try {
+    const d = await fetchJSON(urlFocus);
+    if (d && d.value && d.value.length > 0) {
+      selicProjVal = parseFloat(d.value[0].Mediana);
+      projData = d.value[0].Data || '';
+    }
+  } catch(e) {}
+
+  // Atualiza UI com dados obtidos
+  const now = new Date().toLocaleString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+
+  if (selicVal !== null) {
+    document.getElementById('lv-selic').textContent = fmtPct(selicVal);
+    document.getElementById('lv-selic-badge').textContent = 'atualizado';
+    document.getElementById('lv-selic-badge').className = 'lc-badge';
+    document.getElementById('selic').value = selicVal.toFixed(2);
+    document.getElementById('tag-selic').textContent = '✓ ao vivo';
+  } else {
+    document.getElementById('lv-selic').textContent = '—';
+    document.getElementById('lv-selic-badge').textContent = 'indisponível';
+    document.getElementById('lv-selic-badge').className = 'lc-badge loading';
+  }
+
+  if (ipcaVal !== null) {
+    document.getElementById('lv-ipca').textContent = fmtPct(ipcaVal);
+    document.getElementById('lv-ipca-badge').textContent = 'atualizado';
+    document.getElementById('lv-ipca-badge').className = 'lc-badge';
+    document.getElementById('ipca').value = ipcaVal.toFixed(2);
+    document.getElementById('tag-ipca').textContent = '✓ ao vivo';
+  } else {
+    document.getElementById('lv-ipca').textContent = '—';
+    document.getElementById('lv-ipca-badge').textContent = 'indisponível';
+    document.getElementById('lv-ipca-badge').className = 'lc-badge loading';
+  }
+
+  if (selicProjVal !== null) {
+    document.getElementById('lv-selic-proj').textContent = fmtPct(selicProjVal);
+    document.getElementById('lv-proj-badge').textContent = 'Focus/BCB';
+    document.getElementById('lv-proj-badge').className = 'lc-badge proj';
+    document.getElementById('selic-proj').value = selicProjVal.toFixed(2);
+    document.getElementById('tag-proj').textContent = '✓ Focus BCB';
+  } else {
+    document.getElementById('lv-selic-proj').textContent = '—';
+    document.getElementById('lv-proj-badge').textContent = 'indisponível';
+    document.getElementById('lv-proj-badge').className = 'lc-badge loading';
+  }
+
+  document.getElementById('ultima-atualizacao').textContent = 'Última atualização: ' + now;
+
+  const allOk = selicVal !== null && ipcaVal !== null && selicProjVal !== null;
+  const someOk = selicVal !== null || ipcaVal !== null || selicProjVal !== null;
+  dot.className = 'dot ' + (allOk ? 'ok' : someOk ? 'ok' : 'error');
+  status.textContent = allOk
+    ? 'Taxas atualizadas — Banco Central do Brasil'
+    : someOk
+    ? 'Taxas parcialmente carregadas (alguns dados indisponíveis)'
+    : 'APIs indisponíveis — usando valores padrão';
+
+  apiLoaded = true;
+  render();
 }
+
+// ── cálculo de retorno ─────────────────────────────────────────────
 function calcReturn(principal, taxaAnual, meses, ir, isento) {
   const anos = meses / 12;
   const bruto = principal * (Math.pow(1 + taxaAnual, anos) - 1);
@@ -432,129 +585,126 @@ function calcReturn(principal, taxaAnual, meses, ir, isento) {
   return { bruto, imposto, liquido, final, rentLiqAno };
 }
 
-function render() {
-  const principal = parseFloat(document.getElementById('valor').value) || 50000;
-  const meses = parseInt(document.getElementById('prazo').value);
-  const selic = parseFloat(document.getElementById('selic').value) / 100;
-  const selicProj = parseFloat(document.getElementById('selic-proj').value) / 100;
-  const ipca = parseFloat(document.getElementById('ipca').value) / 100;
-  const pctCdbCdi = parseFloat(document.getElementById('pct-cdi-cdb').value) / 100;
-  const pctLci = parseFloat(document.getElementById('pct-cdi-lci').value) / 100;
-  const taxaPre = parseFloat(document.getElementById('taxa-pre').value) / 100;
-  const spreadIpca = parseFloat(document.getElementById('spread-ipca').value) / 100;
+function highlightIR(meses) {
+  const labels = {'ir-180':'22,5%','ir-360':'20%','ir-720':'17,5%','ir-721':'15%'};
+  Object.keys(labels).forEach(id => {
+    document.getElementById(id).className = 'badge badge-gray';
+    document.getElementById(id).textContent = labels[id];
+  });
+  const target = meses <= 6 ? 'ir-180' : meses <= 12 ? 'ir-360' : meses <= 24 ? 'ir-720' : 'ir-721';
+  document.getElementById(target).className = 'ir-active';
+  document.getElementById(target).textContent = labels[target] + ' ◀ você está aqui';
+}
 
-  document.getElementById('selic-out').textContent = fmtPct(selic * 100);
+// ── render principal ───────────────────────────────────────────────
+function render() {
+  const principal   = parseFloat(document.getElementById('valor').value) || 50000;
+  const meses       = parseInt(document.getElementById('prazo').value);
+  const selic       = parseFloat(document.getElementById('selic').value) / 100;
+  const selicProj   = parseFloat(document.getElementById('selic-proj').value) / 100;
+  const ipca        = parseFloat(document.getElementById('ipca').value) / 100;
+  const pctCdbCdi   = parseFloat(document.getElementById('pct-cdi-cdb').value) / 100;
+  const pctLci      = parseFloat(document.getElementById('pct-cdi-lci').value) / 100;
+  const taxaPre     = parseFloat(document.getElementById('taxa-pre').value) / 100;
+  const spreadIpca  = parseFloat(document.getElementById('spread-ipca').value) / 100;
+
+  document.getElementById('selic-out').textContent     = fmtPct(selic * 100);
   document.getElementById('selic-proj-out').textContent = fmtPct(selicProj * 100);
-  document.getElementById('ipca-out').textContent = fmtPct(ipca * 100);
-  document.getElementById('pct-cdi-cdb-out').textContent = (pctCdbCdi * 100).toFixed(1).replace('.',',') + '%';
-  document.getElementById('pct-cdi-lci-out').textContent = (pctLci * 100).toFixed(1).replace('.',',') + '%';
-  document.getElementById('taxa-pre-out').textContent = fmtPct(taxaPre * 100);
+  document.getElementById('ipca-out').textContent      = fmtPct(ipca * 100);
+  document.getElementById('pct-cdi-cdb-out').textContent = (pctCdbCdi*100).toFixed(1).replace('.',',') + '%';
+  document.getElementById('pct-cdi-lci-out').textContent = (pctLci*100).toFixed(1).replace('.',',') + '%';
+  document.getElementById('taxa-pre-out').textContent  = fmtPct(taxaPre * 100);
   document.getElementById('spread-ipca-out').textContent = fmtPct(spreadIpca * 100);
 
   const selicMedia = (selic + selicProj) / 2;
   const cdi = selicMedia * 0.999;
-  const ir = getIR(meses);
+  const ir  = getIR(meses);
 
   const produtos = [
-    { nome: 'CDB Pós-fixado ' + (pctCdbCdi*100).toFixed(1).replace('.',',') + '% CDI', taxa: cdi * pctCdbCdi, ir, isento: false, tipo: 'pos' },
-    { nome: 'CDB Pré-fixado ' + fmtPct(taxaPre*100), taxa: taxaPre, ir, isento: false, tipo: 'pre' },
-    { nome: 'LCI ' + (pctLci*100).toFixed(1).replace('.',',') + '% CDI (isento)', taxa: cdi * pctLci, ir: 0, isento: true, tipo: 'lci' },
-    { nome: 'LCA ' + ((pctLci-0.01)*100).toFixed(1).replace('.',',') + '% CDI (isento)', taxa: cdi * (pctLci - 0.01), ir: 0, isento: true, tipo: 'lca' },
-    { nome: 'IPCA + ' + fmtPct(spreadIpca*100), taxa: ipca + spreadIpca, ir, isento: false, tipo: 'ipca' },
-    { nome: 'Tesouro Selic', taxa: cdi * 1.001, ir, isento: false, tipo: 'teselic' },
+    { nome: 'CDB Pós '+(pctCdbCdi*100).toFixed(1).replace('.',',')+'% CDI',   taxa: cdi * pctCdbCdi,         ir, isento: false, tipo: 'pos' },
+    { nome: 'CDB Pré-fixado '+fmtPct(taxaPre*100),                            taxa: taxaPre,                 ir, isento: false, tipo: 'pre' },
+    { nome: 'LCI '+(pctLci*100).toFixed(1).replace('.',',')+'% CDI (isento)', taxa: cdi * pctLci,            ir:0, isento: true, tipo: 'lci' },
+    { nome: 'LCA '+((pctLci-0.01)*100).toFixed(1).replace('.',',')+'% CDI (isento)', taxa: cdi*(pctLci-0.01), ir:0, isento: true, tipo: 'lca' },
+    { nome: 'IPCA+ '+fmtPct(spreadIpca*100),                                  taxa: ipca + spreadIpca,       ir, isento: false, tipo: 'ipca' },
+    { nome: 'Tesouro Selic',                                                   taxa: cdi * 1.001,             ir, isento: false, tipo: 'teselic' },
   ];
 
-  const resultados = produtos.map(p => {
-    const r = calcReturn(principal, p.taxa, meses, p.ir, p.isento);
-    return { ...p, ...r };
-  }).sort((a, b) => b.rentLiqAno - a.rentLiqAno);
+  const resultados = produtos.map(p => ({
+    ...p, ...calcReturn(principal, p.taxa, meses, p.ir, p.isento)
+  })).sort((a,b) => b.rentLiqAno - a.rentLiqAno);
 
   const best = resultados[0];
 
   // Tabela
-  const tbody = document.getElementById('prod-body');
-  tbody.innerHTML = '';
-  resultados.forEach((r, i) => {
-    const isBest = i === 0;
-    const tr = document.createElement('tr');
-    if (isBest) tr.className = 'best-row';
-    tr.innerHTML = `
-      <td>
-        <strong>${r.nome}</strong>
-        ${isBest ? '<span class="badge badge-green">melhor</span>' : ''}
-        ${r.isento ? '<span class="badge badge-blue">isento IR</span>' : ''}
-      </td>
-      <td>${fmtPct(r.taxa * 100)}</td>
-      <td>${r.isento ? '0%' : fmtPct(r.ir * 100)}</td>
-      <td><strong>${fmtPct(r.rentLiqAno * 100)}</strong></td>
+  document.getElementById('prod-body').innerHTML = resultados.map((r,i) => `
+    <tr class="${i===0?'best-row':''}">
+      <td><strong>${r.nome}</strong>${i===0?'<span class="badge badge-green">melhor</span>':''}${r.isento?'<span class="badge badge-blue">isento IR</span>':''}</td>
+      <td>${fmtPct(r.taxa*100)}</td>
+      <td>${r.isento?'0%':fmtPct(r.ir*100)}</td>
+      <td><strong>${fmtPct(r.rentLiqAno*100)}</strong></td>
       <td>R$ ${fmt(r.final)}</td>
       <td>R$ ${fmt(r.liquido)}</td>
-    `;
-    tbody.appendChild(tr);
-  });
+    </tr>`).join('');
 
   // Métricas
-  document.getElementById('m-liq').textContent = fmtPct(best.rentLiqAno * 100) + ' a.a.';
-  document.getElementById('m-ganho').textContent = 'R$ ' + fmt(best.liquido);
-  document.getElementById('m-final').textContent = 'R$ ' + fmt(best.final);
+  document.getElementById('m-liq').textContent   = fmtPct(best.rentLiqAno*100) + ' a.a.';
+  document.getElementById('m-ganho').textContent  = 'R$ ' + fmt(best.liquido);
+  document.getElementById('m-final').textContent  = 'R$ ' + fmt(best.final);
   const realGain = ((1 + best.rentLiqAno) / (1 + ipca) - 1) * 100;
-  document.getElementById('m-real').textContent = fmtPct(realGain) + ' a.a.';
+  document.getElementById('m-real').textContent   = fmtPct(realGain) + ' a.a.';
 
-  // IR
+  // IR highlight
   highlightIR(meses);
-  const irPct = ir === 0.225 ? '22,5%' : ir === 0.20 ? '20%' : ir === 0.175 ? '17,5%' : '15%';
-  const prox = meses <= 6 ? `Espere mais ${7 - meses} meses para cair para 20%.` :
-               meses <= 12 ? `Espere mais ${13 - meses} meses para cair para 17,5%.` :
-               meses <= 24 ? `Espere mais ${25 - meses} meses para cair para 15%.` :
-               'Você está na alíquota mínima de 15%. Para isenção total, prefira LCI/LCA.';
-  document.getElementById('ir-tip').innerHTML = `<strong>Alíquota atual para este prazo: ${irPct}.</strong> ${prox} LCI e LCA são isentos de IR independentemente do prazo.`;
+  const irPct = ir===0.225?'22,5%':ir===0.20?'20%':ir===0.175?'17,5%':'15%';
+  const prox = meses<=6  ? `Espere mais ${7-meses} meses para cair para 20%.` :
+               meses<=12 ? `Espere mais ${13-meses} meses para cair para 17,5%.` :
+               meses<=24 ? `Espere mais ${25-meses} meses para cair para 15%.` :
+               'Você já está na alíquota mínima de 15%. Para isenção total, prefira LCI/LCA.';
+  document.getElementById('ir-tip').innerHTML = `<strong>Alíquota atual para este prazo: ${irPct}.</strong> ${prox} LCI e LCA são sempre isentos.`;
 
-  // Equivalência LCI/LCA
-  const lciTaxa = cdi * pctLci;
-  const equivBruta = lciTaxa / (1 - ir);
-  const equivPctCdi = equivBruta / cdi;
+  // Equivalência
+  const equivBruta = (cdi * pctLci) / (1 - ir);
   document.getElementById('equiv-tip').innerHTML =
-    `Uma LCI a <strong>${(pctLci*100).toFixed(1).replace('.',',')}% do CDI</strong> é equivalente, líquido de IR, a um CDB de <strong>${fmtPct(equivPctCdi*100)} do CDI</strong> (${fmtPct(equivBruta*100)} a.a.) para o prazo escolhido, com alíquota de IR de ${irPct}. Se a sua corretora oferece CDBs acima de ${fmtPct(equivPctCdi*100)} do CDI, o CDB pode superar a LCI neste prazo.`;
+    `Uma LCI a <strong>${(pctLci*100).toFixed(1).replace('.',',')}% do CDI</strong> equivale, líquido de IR, a um CDB de <strong>${fmtPct((equivBruta/cdi)*100)} do CDI</strong> (${fmtPct(equivBruta*100)} a.a.) para ${meses} meses (IR ${irPct}). Se sua corretora oferece CDBs acima de ${fmtPct((equivBruta/cdi)*100)} do CDI, o CDB pode superar a LCI neste prazo.`;
 
   // Best tip
   const selicCaindo = selicProj < selic - 0.005;
   const selicSubindo = selicProj > selic + 0.005;
-  let btxt = '';
-  if (selicCaindo) btxt = `<strong>Selic em queda (${fmtPct(selic*100)} → ${fmtPct(selicProj*100)}):</strong> Prefixados e IPCA+ ganham atratividade — você trava a taxa alta de hoje. O CDB pré a ${fmtPct(taxaPre*100)} protege sua rentabilidade contra cortes futuros. LCI/LCA isentos também compensam bem.`;
-  else if (selicSubindo) btxt = `<strong>Selic em alta (${fmtPct(selic*100)} → ${fmtPct(selicProj*100)}):</strong> Pós-fixados são favorecidos — você acompanha os juros em alta. Evite travar em prefixados agora; priorize CDB pós ou LCI/LCA.`;
-  else btxt = `<strong>Selic estável:</strong> Pós-fixados entregam rentabilidade consistente. LCI/LCA isentos tendem a liderar o ranking líquido. É um bom momento para comparar as taxas na sua corretora.`;
-  document.getElementById('best-tip').innerHTML = btxt;
+  document.getElementById('best-tip').innerHTML = selicCaindo
+    ? `<strong>Selic em queda (${fmtPct(selic*100)} → ${fmtPct(selicProj*100)}):</strong> Prefixados e IPCA+ ganham atratividade — você trava a taxa alta de hoje. LCI/LCA isentos também compensam bem no médio prazo.`
+    : selicSubindo
+    ? `<strong>Selic em alta (${fmtPct(selic*100)} → ${fmtPct(selicProj*100)}):</strong> Pós-fixados são favorecidos — você acompanha os juros em alta. Evite travar em prefixados agora.`
+    : `<strong>Selic estável:</strong> Pós-fixados entregam rentabilidade consistente. LCI/LCA isentos tendem a liderar o ranking líquido neste cenário.`;
 
   // Guia
-  const irNome = irPct;
   document.getElementById('guide-grid').innerHTML = `
-    <div class="guide-card ${selicCaindo ? 'highlight' : ''}">
-      <h3>📌 Pré-fixado ${selicCaindo ? '← recomendado agora' : ''}</h3>
-      <p>Ideal quando a Selic está em queda. Você trava a taxa alta de hoje e se beneficia mesmo que os juros caiam. Risco: se a Selic subir mais que o esperado, você perde oportunidade. Melhor para prazos de 1 a 3 anos.</p>
+    <div class="guide-card ${selicCaindo?'highlight':''}">
+      <h3>Pré-fixado ${selicCaindo?'← indicado agora':''}</h3>
+      <p>Ideal quando a Selic está em queda. Você trava a taxa alta de hoje e se beneficia mesmo que os juros caiam. Risco: se a Selic subir mais que o esperado, você perde oportunidade. Melhor para 1 a 3 anos.</p>
     </div>
-    <div class="guide-card ${!selicCaindo && !selicSubindo ? 'highlight' : ''}">
-      <h3>📌 Pós-fixado (CDI) ${selicSubindo ? '← recomendado agora' : ''}</h3>
-      <p>Ideal quando a Selic está alta, estável ou subindo. Você acompanha os juros sem risco de perda por variação de taxa. Liquidez geralmente melhor. O CDB ${(pctCdbCdi*100).toFixed(0)}% CDI rende acima do Tesouro Selic.</p>
-    </div>
-    <div class="guide-card">
-      <h3>📌 LCI / LCA (isentos)</h3>
-      <p>Sempre competitivos por causa da isenção de IR. Verifique a equivalência calculada acima para saber se estão batendo os CDBs disponíveis. Prazo mínimo de 90 dias. Garantia FGC até R$ 250 mil.</p>
+    <div class="guide-card ${selicSubindo?'highlight':''}">
+      <h3>Pós-fixado (CDI) ${selicSubindo?'← indicado agora':''}</h3>
+      <p>Ideal com Selic alta, estável ou subindo. Você acompanha os juros sem risco de perda por variação de taxa. Liquidez geralmente boa. O CDB ${(pctCdbCdi*100).toFixed(0)}% CDI rende mais que o Tesouro Selic.</p>
     </div>
     <div class="guide-card">
-      <h3>📌 IPCA+</h3>
-      <p>Ideal para preservar poder de compra no longo prazo (2+ anos). Garante rentabilidade real acima da inflação. Atenção: se resgatar antes do vencimento, pode haver perda por marcação a mercado. Melhor via Tesouro IPCA+.</p>
+      <h3>LCI / LCA (isentos)</h3>
+      <p>Sempre competitivos pela isenção de IR. Verifique a equivalência acima para saber se batem os CDBs disponíveis. Prazo mínimo de 90 dias. Garantia FGC até R$ 250 mil por instituição.</p>
+    </div>
+    <div class="guide-card">
+      <h3>IPCA+</h3>
+      <p>Ideal para preservar poder de compra no longo prazo (2+ anos). Garante rentabilidade real acima da inflação. Atenção: resgate antecipado pode ter perda por marcação a mercado. Melhor via Tesouro IPCA+.</p>
     </div>
   `;
 
-  renderChart(principal, meses, cdi, pctCdbCdi, pctLci, taxaPre, spreadIpca, ipca, ir, currentScenario, selicMedia, selicProj, selic);
+  renderChart(principal, meses, cdi, pctCdbCdi, pctLci, taxaPre, spreadIpca, ipca, ir, currentScenario);
 }
 
-function renderChart(principal, meses, cdi, pctCdb, pctLci, taxaPre, spreadIpca, ipca, ir, scenario, selicMedia, selicProj, selic) {
-  const labels = [];
-  for (let m = 0; m <= meses; m++) labels.push(m === 0 ? 'Início' : `M${m}`);
+// ── gráfico ────────────────────────────────────────────────────────
+function renderChart(principal, meses, cdi, pctCdb, pctLci, taxaPre, spreadIpca, ipca, ir, scenario) {
+  const labels = Array.from({length:meses+1},(_,i) => i===0?'Início':`M${i}`);
 
   function series(taxaAnual, irRate, isento) {
-    return labels.map((_, i) => {
+    return labels.map((_,i) => {
       const anos = i / 12;
       const bruto = principal * (Math.pow(1 + taxaAnual, anos) - 1);
       return Math.round(principal + bruto - (isento ? 0 : bruto * irRate));
@@ -562,53 +712,37 @@ function renderChart(principal, meses, cdi, pctCdb, pctLci, taxaPre, spreadIpca,
   }
 
   let cdiAdj = cdi;
-  if (scenario === 'selicup') cdiAdj = (selicMedia + 0.01) * 0.999;
-  if (scenario === 'selicdown') cdiAdj = (selicMedia - 0.015) * 0.999;
+  if (scenario === 'selicup')   cdiAdj = (cdi / 0.999 + 0.01) * 0.999;
+  if (scenario === 'selicdown') cdiAdj = (cdi / 0.999 - 0.015) * 0.999;
 
-  const colors = {
-    pos: '#185FA5',
-    pre: '#BA7517',
-    lci: '#1D9E75',
-    lca: '#085041',
-    ipca: '#888780',
-    teselic: '#A32D2D',
-  };
-
-  let datasets;
-  if (scenario === 'all') {
-    datasets = [
-      { label: 'CDB pós ' + (pctCdb*100).toFixed(0) + '% CDI', data: series(cdiAdj * pctCdb, ir, false), borderColor: colors.pos, pointRadius: 0, borderWidth: 2 },
-      { label: 'CDB pré ' + (taxaPre*100).toFixed(1).replace('.',',') + '%', data: series(taxaPre, ir, false), borderColor: colors.pre, pointRadius: 0, borderWidth: 2 },
-      { label: 'LCI ' + (pctLci*100).toFixed(0) + '% CDI', data: series(cdiAdj * pctLci, 0, true), borderColor: colors.lci, pointRadius: 0, borderWidth: 2 },
-      { label: 'IPCA+ ' + (spreadIpca*100).toFixed(1).replace('.',',') + '%', data: series(ipca + spreadIpca, ir, false), borderColor: colors.ipca, pointRadius: 0, borderWidth: 1.5, borderDash: [5,4] },
-    ];
-  } else if (scenario === 'selicup') {
-    datasets = [
-      { label: 'CDB pós (Selic ↑)', data: series(cdiAdj * pctCdb, ir, false), borderColor: colors.pos, pointRadius: 0, borderWidth: 2 },
-      { label: 'LCI isento (Selic ↑)', data: series(cdiAdj * pctLci, 0, true), borderColor: colors.lci, pointRadius: 0, borderWidth: 2 },
-      { label: 'CDB pré (fixo)', data: series(taxaPre, ir, false), borderColor: colors.pre, pointRadius: 0, borderWidth: 1.5, borderDash: [5,4] },
-    ];
-  } else {
-    datasets = [
-      { label: 'CDB pré (trava alta)', data: series(taxaPre, ir, false), borderColor: colors.pre, pointRadius: 0, borderWidth: 2 },
-      { label: 'LCI isento (Selic ↓)', data: series(cdiAdj * pctLci, 0, true), borderColor: colors.lci, pointRadius: 0, borderWidth: 2 },
-      { label: 'CDB pós (cai c/ Selic)', data: series(cdiAdj * pctCdb, ir, false), borderColor: colors.pos, pointRadius: 0, borderWidth: 1.5, borderDash: [5,4] },
-    ];
-  }
+  const datasets = scenario === 'all' ? [
+    { label:'CDB pós '+(pctCdb*100).toFixed(0)+'% CDI', data:series(cdiAdj*pctCdb,ir,false),     borderColor:'#185FA5', pointRadius:0, borderWidth:2 },
+    { label:'CDB pré '+((taxaPre*100).toFixed(1).replace('.',','))+'%', data:series(taxaPre,ir,false), borderColor:'#BA7517', pointRadius:0, borderWidth:2 },
+    { label:'LCI '+(pctLci*100).toFixed(0)+'% CDI',      data:series(cdiAdj*pctLci,0,true),       borderColor:'#1D9E75', pointRadius:0, borderWidth:2 },
+    { label:'IPCA+ '+(spreadIpca*100).toFixed(1).replace('.',',')+'%', data:series(ipca+spreadIpca,ir,false), borderColor:'#888780', pointRadius:0, borderWidth:1.5, borderDash:[5,4] },
+  ] : scenario === 'selicup' ? [
+    { label:'CDB pós (Selic ↑)',  data:series(cdiAdj*pctCdb,ir,false), borderColor:'#185FA5', pointRadius:0, borderWidth:2 },
+    { label:'LCI isento (Selic ↑)', data:series(cdiAdj*pctLci,0,true),  borderColor:'#1D9E75', pointRadius:0, borderWidth:2 },
+    { label:'CDB pré (fixo)',     data:series(taxaPre,ir,false),        borderColor:'#BA7517', pointRadius:0, borderWidth:1.5, borderDash:[5,4] },
+  ] : [
+    { label:'CDB pré (trava alta)',   data:series(taxaPre,ir,false),        borderColor:'#BA7517', pointRadius:0, borderWidth:2 },
+    { label:'LCI isento (Selic ↓)',   data:series(cdiAdj*pctLci,0,true),    borderColor:'#1D9E75', pointRadius:0, borderWidth:2 },
+    { label:'CDB pós (cai c/ Selic)', data:series(cdiAdj*pctCdb,ir,false),  borderColor:'#185FA5', pointRadius:0, borderWidth:1.5, borderDash:[5,4] },
+  ];
 
   if (evChart) { evChart.destroy(); evChart = null; }
   evChart = new Chart(document.getElementById('ev-chart'), {
-    type: 'line',
-    data: { labels, datasets },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: true, position: 'top', labels: { font: { size: 11 }, padding: 14, boxWidth: 14, boxHeight: 2, color: '#888780' } },
-        tooltip: { callbacks: { label: ctx => ' R$ ' + ctx.parsed.y.toLocaleString('pt-BR') } }
+    type:'line',
+    data:{ labels, datasets },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{ display:true, position:'top', labels:{ font:{size:11}, padding:14, boxWidth:14, boxHeight:2, color:'#888780' } },
+        tooltip:{ callbacks:{ label: ctx => ' R$ ' + ctx.parsed.y.toLocaleString('pt-BR') } }
       },
-      scales: {
-        x: { ticks: { font: { size: 10 }, maxTicksLimit: 13, autoSkip: true, color: '#888780' }, grid: { display: false } },
-        y: { ticks: { font: { size: 10 }, callback: v => 'R$ ' + (v / 1000).toFixed(0) + 'k', color: '#888780' }, grid: { color: 'rgba(128,128,128,0.1)' } }
+      scales:{
+        x:{ ticks:{ font:{size:10}, maxTicksLimit:13, autoSkip:true, color:'#888780' }, grid:{display:false} },
+        y:{ ticks:{ font:{size:10}, callback: v => 'R$ '+(v/1000).toFixed(0)+'k', color:'#888780' }, grid:{color:'rgba(128,128,128,0.1)'} }
       }
     }
   });
@@ -617,13 +751,14 @@ function renderChart(principal, meses, cdi, pctCdb, pctLci, taxaPre, spreadIpca,
 function setScenario(s) {
   currentScenario = s;
   ['btn-all','btn-selic-up','btn-selic-down'].forEach(id => document.getElementById(id).classList.remove('active'));
-  const map = { all:'btn-all', selicup:'btn-selic-up', selicdown:'btn-selic-down' };
-  document.getElementById(map[s]).classList.add('active');
+  document.getElementById({all:'btn-all',selicup:'btn-selic-up',selicdown:'btn-selic-down'}[s]).classList.add('active');
   render();
 }
 
+// ── inicialização ──────────────────────────────────────────────────
 document.querySelectorAll('input, select').forEach(el => el.addEventListener('input', render));
-render();
+render();        // renderiza com defaults
+fetchBCB();      // busca APIs e re-renderiza quando terminar
 </script>
 </body>
 </html>
