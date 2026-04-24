@@ -1,12 +1,15 @@
 {
-  "selic": 13.25,
-  "selicProjetada": 11.50,
-  "ipca": 4.80,
-  "atualizadoEm": "aguardando primeira atualização automática",
-  "atualizadoEmISO": "",
+  "selic": 14.65,
+  "selicProjetada": 11.5,
+  "ipca": 4.14,
+  "atualizadoEm": "24/04/2026 às 01:13h UTC",
+  "atualizadoEmISO": "2026-04-24T01:13:24Z",
+  "erros": [
+    "focus: resposta vazia"
+  ],
   "fontes": {
-    "selic": "BCB SGS série 4189",
-    "selicProjetada": "BCB Focus — Expectativas de Mercado",
-    "ipca": "BCB SGS série 13522"
+    "selic": "BCB SGS série 4189 — Selic anualizada base 252",
+    "selicProjetada": "BCB Focus — Expectativas de Mercado (mediana)",
+    "ipca": "BCB SGS série 13522 — IPCA acumulado 12 meses"
   }
 }
