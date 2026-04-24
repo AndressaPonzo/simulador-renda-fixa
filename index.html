@@ -41,12 +41,12 @@
   /* ── header ── */
   header {
     background: var(--bg); border-bottom: 0.5px solid var(--border);
-    padding: 1.1rem 2rem;
+    padding: 0.75rem 2rem;
     display: flex; align-items: center; justify-content: space-between;
-    flex-wrap: wrap; gap: 0.75rem;
+    flex-wrap: wrap; gap: 0.5rem;
   }
-  .header-left h1 { font-size: 17px; font-weight: 500; }
-  .header-left p  { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .header-left h1 { font-size: 16px; font-weight: 500; }
+  .header-left p  { font-size: 11px; color: var(--text2); margin-top: 1px; }
   .status-pill {
     display: flex; align-items: center; gap: 8px;
     background: var(--bg2); border: 0.5px solid var(--border);
@@ -61,14 +61,14 @@
   .status-pill .dot.cached { background: var(--blue); }
 
   /* ── layout ── */
-  .container { max-width: 880px; margin: 0 auto; padding: 2rem 1.5rem; }
+  .container { max-width: 880px; margin: 0 auto; padding: 1rem 1.5rem; }
   .card {
     background: var(--bg); border: 0.5px solid var(--border);
-    border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 1.5rem;
+    border-radius: var(--radius-lg); padding: 1rem 1.25rem; margin-bottom: 1rem;
   }
   .section-title {
     font-size: 11px; font-weight: 500; color: var(--text3);
-    text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 1rem;
+    text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.75rem;
   }
 
   /* ── taxas ao vivo ── */
@@ -104,20 +104,20 @@
   .fonte-nota strong { color: var(--text); font-weight: 500; }
 
   /* ── inputs ── */
-  .inputs-grid { display: grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:1.25rem; }
+  .inputs-grid { display: grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:0.85rem; }
   @media(max-width:500px){ .inputs-grid { grid-template-columns:1fr; } }
-  .input-group { display:flex; flex-direction:column; gap:6px; }
-  .input-group label { font-size:13px; color:var(--text2); }
+  .input-group { display:flex; flex-direction:column; gap:5px; }
+  .input-group label { font-size:12px; color:var(--text2); }
   .input-group input[type=number], .input-group select {
-    width:100%; padding:8px 10px;
+    width:100%; padding:6px 10px;
     border: 0.5px solid var(--border2); border-radius:var(--radius);
-    background:var(--bg); color:var(--text); font-size:14px; outline:none;
+    background:var(--bg); color:var(--text); font-size:13px; outline:none;
   }
   .input-group input:focus, .input-group select:focus { border-color:var(--blue); }
-  .slider-row { display:flex; align-items:center; gap:10px; margin-bottom:0.85rem; }
-  .slider-row label { font-size:13px; color:var(--text2); min-width:180px; }
+  .slider-row { display:flex; align-items:center; gap:10px; margin-bottom:0.55rem; }
+  .slider-row label { font-size:12px; color:var(--text2); min-width:180px; }
   .slider-row input[type=range] { flex:1; accent-color:var(--blue); cursor:pointer; }
-  .slider-val { font-size:13px; font-weight:500; min-width:58px; text-align:right; color:var(--text); }
+  .slider-val { font-size:12px; font-weight:500; min-width:52px; text-align:right; color:var(--text); }
   .auto-tag {
     font-size:9px; font-weight:500; padding:1px 6px;
     border-radius:20px; background:#C0DD97; color:#173404; white-space:nowrap; margin-left:4px;
@@ -233,7 +233,7 @@
 
   <!-- TAXAS CARREGADAS -->
   <div class="card">
-    <p class="section-title">taxas de referência — atualizadas automaticamente 2× por dia</p>
+    <p class="section-title">taxas de referência — atualizadas automaticamente</p>
     <div class="live-grid">
       <div class="live-card">
         <div class="lc-lbl">Selic atual</div>
@@ -321,7 +321,7 @@
 
   <!-- MÉTRICAS -->
   <div class="card">
-    <p class="section-title">melhor opção no cenário configurado</p>
+    <p class="section-title">melhor opção no cenário configurado — <span id="m-nome" style="color:var(--green);text-transform:none;letter-spacing:0">—</span></p>
     <div class="metrics">
       <div class="metric-card">
         <div class="metric-lbl">Rentab. líquida a.a.</div>
@@ -602,6 +602,7 @@ function render(){
     </tr>`).join('');
 
   // Métricas
+  document.getElementById('m-nome').textContent  = best.nome;
   document.getElementById('m-liq').textContent   = fmtPct(best.rentAno*100)+' a.a.';
   document.getElementById('m-ganho').textContent  = 'R$ '+fmt(best.liq);
   document.getElementById('m-final').textContent  = 'R$ '+fmt(best.final);
