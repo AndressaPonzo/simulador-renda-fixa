@@ -61,9 +61,8 @@
   /* ── taxas ao vivo ── */
   .live-grid {
     display: grid; grid-template-columns: repeat(3,minmax(0,1fr));
-    gap: 8px; margin-bottom: 1rem;
+    gap: 8px; margin-bottom: 0;
   }
-  /* sempre 3 colunas — inclusive no mobile */
   .live-card {
     background: var(--bg2); border-radius: var(--radius); padding: 10px 8px;
     position: relative; overflow: hidden; min-width: 0;
@@ -71,14 +70,14 @@
   .live-card .lc-lbl { font-size: 10px; color: var(--text3); margin-bottom: 4px; line-height: 1.3; }
   .live-card .lc-val { font-size: 18px; font-weight: 500; color: var(--text); }
   @media(max-width:400px){ .live-card .lc-val { font-size: 15px; } }
-  .live-card .lc-src { font-size: 9px; color: var(--text3); margin-top: 3px; }
-  .live-card .lc-tag {
-    position: absolute; top: 6px; right: 6px;
-    font-size: 8px; font-weight: 500; padding: 1px 5px;
-    border-radius: 20px; background: #C0DD97; color: #173404; white-space: nowrap;
+  /* bolinha de status no canto superior direito */
+  .live-card .lc-dot {
+    position: absolute; top: 7px; right: 7px;
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #ccc;
   }
-  .live-card .lc-tag.proj   { background: #B5D4F4; color: #042C53; }
-  .live-card .lc-tag.cached { background: #FAC775; color: #412402; }
+  .live-card .lc-dot.ok     { background: #A8D97F; }   /* verde claro — tudo certo   */
+  .live-card .lc-dot.warn   { background: #2E7D32; }   /* verde escuro — atenção      */
 
   /* ── nota de fonte ── */
   .fonte-nota {
@@ -92,7 +91,7 @@
 
   /* ── inputs ── */
   .inputs-grid { display: grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:0.85rem; }
-  @media(max-width:500px){ .inputs-grid { grid-template-columns:1fr; } }
+  /* no mobile mantém 2 colunas para valor+prazo ficarem lado a lado */
   .input-group { display:flex; flex-direction:column; gap:6px; }
   .input-group label { font-size:13px; color:var(--text2); }
   .input-group input[type=number], .input-group select {
@@ -221,20 +220,17 @@
       <div class="live-card">
         <div class="lc-lbl">Selic atual</div>
         <div class="lc-val" id="lv-selic">—</div>
-        <div class="lc-src">BCB · SGS série 4189</div>
-        <span class="lc-tag" id="tag-selic">—</span>
+        <span class="lc-dot" id="tag-selic"></span>
       </div>
       <div class="live-card">
         <div class="lc-lbl">Selic projetada Focus (12m)</div>
         <div class="lc-val" id="lv-proj">—</div>
-        <div class="lc-src">BCB · Expectativas de Mercado</div>
-        <span class="lc-tag proj" id="tag-proj">—</span>
+        <span class="lc-dot" id="tag-proj"></span>
       </div>
       <div class="live-card">
         <div class="lc-lbl">IPCA acumulado 12m</div>
         <div class="lc-val" id="lv-ipca">—</div>
-        <div class="lc-src">BCB · SGS série 13522</div>
-        <span class="lc-tag" id="tag-ipca">—</span>
+        <span class="lc-dot" id="tag-ipca"></span>
       </div>
     </div>
 
@@ -444,9 +440,6 @@ function lerCache(){ try{ const s=localStorage.getItem(CACHE_KEY); return s?JSON
 // 1h de tolerância após a atualização esperada (6h e 18h BRT)
 // ─────────────────────────────────────────────
 async function carregarDados(){
-  const dot = document.getElementById('status-dot');
-  const txt = document.getElementById('status-txt');
-
   // Tenta buscar dados.json com cache-bust leve (muda a cada hora)
   const hora = Math.floor(Date.now() / 3600000);
   try {
@@ -457,8 +450,6 @@ async function carregarDados(){
     if(typeof d.selic === 'number' && typeof d.ipca === 'number'){
       aplicarDados(d, 'fresh');
       salvarCache(d);
-      dot.className = 'dot ok';
-      txt.textContent = 'Taxas atualizadas — Banco Central do Brasil';
       return;
     }
     throw new Error('dados incompletos');
@@ -468,22 +459,17 @@ async function carregarDados(){
     const cache = lerCache();
     if(cache && typeof cache.selic === 'number'){
       aplicarDados(cache, 'cached');
-      dot.className = 'dot cached';
-      txt.textContent = 'Usando dados em cache — última atualização: ' + (cache.atualizadoEm || '—');
       return;
     }
-
     // Fallback final: valores padrão
     aplicarDados(DEFAULTS, 'default');
-    dot.className = 'dot warn';
-    txt.textContent = 'Dados indisponíveis — usando valores padrão (ajuste os sliders)';
   }
 }
 
 function aplicarDados(d, origem){
-  const selic = d.selic       ?? DEFAULTS.selic;
+  const selic = d.selic          ?? DEFAULTS.selic;
   const proj  = d.selicProjetada ?? DEFAULTS.selicProjetada;
-  const ipca  = d.ipca        ?? DEFAULTS.ipca;
+  const ipca  = d.ipca           ?? DEFAULTS.ipca;
 
   // Sliders
   document.getElementById('selic').value      = selic;
@@ -495,22 +481,19 @@ function aplicarDados(d, origem){
   document.getElementById('lv-proj').textContent  = fmtPct(proj);
   document.getElementById('lv-ipca').textContent  = fmtPct(ipca);
 
-  // Tags de origem
-  const tagClass = origem==='fresh'?'lc-tag':origem==='cached'?'lc-tag cached':'lc-tag cached';
-  const tagTxt   = origem==='fresh'?'ao vivo':origem==='cached'?'em cache':'padrão';
-  ['tag-selic','tag-ipca'].forEach(id=>{
-    const el=document.getElementById(id); el.className=tagClass; el.textContent=tagTxt;
+  // Bolinhas: verde claro = fresh | verde escuro = cached/default
+  const dotClass = origem==='fresh' ? 'lc-dot ok' : 'lc-dot warn';
+  ['tag-selic','tag-proj','tag-ipca'].forEach(id => {
+    document.getElementById(id).className = dotClass;
   });
-  const tp=document.getElementById('tag-proj');
-  tp.className=tagClass+' proj'; tp.textContent=(origem==='fresh'?'Focus BCB':tagTxt);
 
   // Tags dos sliders
-  const aTagTxt = origem==='fresh'?'✓ ao vivo':origem==='cached'?'em cache':'padrão';
+  const aTagTxt = origem==='fresh' ? '✓ ao vivo' : origem==='cached' ? 'em cache' : 'padrão';
   document.getElementById('atag-selic').textContent = aTagTxt;
   document.getElementById('atag-ipca').textContent  = aTagTxt;
-  document.getElementById('atag-proj').textContent  = origem==='fresh'?'✓ Focus':aTagTxt;
+  document.getElementById('atag-proj').textContent  = origem==='fresh' ? '✓ Focus' : aTagTxt;
 
-  // Última atualização
+  // Última atualização no título do card
   document.getElementById('ultima-att').textContent =
     d.atualizadoEm ? 'última atualização: '+d.atualizadoEm : 'atualizadas automaticamente';
 
