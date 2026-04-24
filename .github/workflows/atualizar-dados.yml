@@ -1,0 +1,145 @@
+name: Atualizar Taxas BCB
+
+on:
+  schedule:
+    # Roda às 06:00 e 18:00 horário de Brasília (UTC-3)
+    # No GitHub Actions o cron usa UTC, então: 06h BRT = 09h UTC | 18h BRT = 21h UTC
+    - cron: '0 9 * * 1-5'
+    - cron: '0 21 * * 1-5'
+  workflow_dispatch:  # permite rodar manualmente pelo GitHub
+
+jobs:
+  atualizar-taxas:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Buscar taxas do Banco Central
+        id: buscar
+        run: |
+          echo "Buscando Selic atual (SGS série 4189)..."
+          SELIC_RAW=$(curl -sf --max-time 15 \
+            "https://api.bcb.gov.br/dados/serie/bcdata.sgs.4189/dados/ultimos/1?formato=json" || echo "")
+
+          echo "Buscando IPCA acumulado 12m (SGS série 13522)..."
+          IPCA_RAW=$(curl -sf --max-time 15 \
+            "https://api.bcb.gov.br/dados/serie/bcdata.sgs.13522/dados/ultimos/1?formato=json" || echo "")
+
+          echo "Buscando Selic projetada Focus..."
+          FOCUS_RAW=$(curl -sf --max-time 15 \
+            "https://olinda.bcb.gov.br/olinda/servico/Expectativas/versao/v1/odata/ExpectativasMercadoAnuais?\$filter=Indicador%20eq%20'Selic'%20and%20Suavizado%20eq%20'S'&\$orderby=Data%20desc&\$top=1&\$format=json&\$select=Data,Mediana" || echo "")
+
+          echo "SELIC_RAW=$SELIC_RAW"
+          echo "IPCA_RAW=$IPCA_RAW"
+          echo "FOCUS_RAW=$FOCUS_RAW"
+
+          # Extrai valores com python (mais confiável que jq para este formato)
+          python3 << 'PYEOF'
+          import json, os, re
+          from datetime import datetime
+
+          # Carrega dados anteriores como fallback
+          try:
+              with open('dados.json', 'r') as f:
+                  anterior = json.load(f)
+          except:
+              anterior = {"selic": 13.25, "selicProjetada": 11.50, "ipca": 4.80}
+
+          selic_val = anterior.get("selic")
+          ipca_val  = anterior.get("ipca")
+          proj_val  = anterior.get("selicProjetada")
+          erros     = []
+
+          # Selic
+          try:
+              raw = os.environ.get("SELIC_RAW","").strip()
+              if raw:
+                  d = json.loads(raw)
+                  v = float(d[0]["valor"].replace(",","."))
+                  if 5 < v < 30:
+                      selic_val = round(v, 2)
+                      print(f"  Selic OK: {selic_val}%")
+                  else:
+                      erros.append("selic fora do range esperado")
+              else:
+                  erros.append("selic: resposta vazia")
+          except Exception as e:
+              erros.append(f"selic: {e}")
+
+          # IPCA
+          try:
+              raw = os.environ.get("IPCA_RAW","").strip()
+              if raw:
+                  d = json.loads(raw)
+                  v = float(d[0]["valor"].replace(",","."))
+                  if 0 < v < 30:
+                      ipca_val = round(v, 2)
+                      print(f"  IPCA OK: {ipca_val}%")
+                  else:
+                      erros.append("ipca fora do range esperado")
+              else:
+                  erros.append("ipca: resposta vazia")
+          except Exception as e:
+              erros.append(f"ipca: {e}")
+
+          # Selic projetada Focus
+          try:
+              raw = os.environ.get("FOCUS_RAW","").strip()
+              if raw:
+                  d = json.loads(raw)
+                  v = float(d["value"][0]["Mediana"])
+                  data_ref = d["value"][0].get("Data","")
+                  if 5 < v < 30:
+                      proj_val = round(v, 2)
+                      print(f"  Focus OK: {proj_val}% (ref: {data_ref})")
+                  else:
+                      erros.append("focus fora do range esperado")
+              else:
+                  erros.append("focus: resposta vazia")
+          except Exception as e:
+              erros.append(f"focus: {e}")
+
+          # Monta objeto final
+          now_brt = datetime.utcnow()
+          agora_fmt = now_brt.strftime("%d/%m/%Y às %H:%Mh UTC")
+
+          resultado = {
+              "selic":           selic_val,
+              "selicProjetada":  proj_val,
+              "ipca":            ipca_val,
+              "atualizadoEm":    agora_fmt,
+              "atualizadoEmISO": now_brt.strftime("%Y-%m-%dT%H:%M:%SZ"),
+              "erros":           erros,
+              "fontes": {
+                  "selic":           "BCB SGS série 4189 — Selic anualizada base 252",
+                  "selicProjetada":  "BCB Focus — Expectativas de Mercado (mediana)",
+                  "ipca":            "BCB SGS série 13522 — IPCA acumulado 12 meses"
+              }
+          }
+
+          with open('dados.json', 'w') as f:
+              json.dump(resultado, f, ensure_ascii=False, indent=2)
+
+          print(f"\nResultado salvo em dados.json")
+          print(f"  Selic: {selic_val}%")
+          print(f"  IPCA:  {ipca_val}%")
+          print(f"  Focus: {proj_val}%")
+          if erros:
+              print(f"  Avisos: {erros}")
+          PYEOF
+        env:
+          SELIC_RAW: ${{ steps.buscar.outputs.selic_raw }}
+          IPCA_RAW:  ${{ steps.buscar.outputs.ipca_raw }}
+          FOCUS_RAW: ${{ steps.buscar.outputs.focus_raw }}
+
+      - name: Commit e push do dados.json
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add dados.json
+          git diff --staged --quiet || git commit -m "chore: atualiza taxas BCB $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push
