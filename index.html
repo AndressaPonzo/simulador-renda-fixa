@@ -200,6 +200,54 @@
   }
   footer a { color:var(--blue); text-decoration:none; }
   strong { font-weight:500; }
+
+  /* ── equivalências card ── */
+  .eq-input-row {
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:1rem;
+  }
+  .eq-input-row select, .eq-input-row input[type=number] {
+    padding:7px 10px; border:0.5px solid var(--border2); border-radius:var(--radius);
+    background:var(--bg); color:var(--text); font-size:14px; outline:none;
+  }
+  .eq-input-row select { min-width:160px; }
+  .eq-input-row input[type=number] { width:120px; }
+  .eq-input-row select:focus, .eq-input-row input[type=number]:focus { border-color:var(--blue); }
+  .eq-input-row label { font-size:13px; color:var(--text2); white-space:nowrap; }
+  .eq-faixa-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media(max-width:560px){ .eq-faixa-grid { grid-template-columns:1fr; } }
+  .eq-faixa-card {
+    background:var(--bg2); border-radius:var(--radius); padding:14px;
+    border-left:3px solid var(--border2);
+  }
+  .eq-faixa-card.faixa-180 { border-left-color:#BA7517; }
+  .eq-faixa-card.faixa-360 { border-left-color:#185FA5; }
+  .eq-faixa-card.faixa-720 { border-left-color:#1D9E75; }
+  .eq-faixa-card.faixa-721 { border-left-color:#8B5CF6; }
+  .eq-faixa-title {
+    font-size:12px; font-weight:500; color:var(--text); margin-bottom:2px;
+  }
+  .eq-faixa-date {
+    font-size:11px; color:var(--text3); margin-bottom:10px;
+  }
+  .eq-faixa-ir-badge {
+    display:inline-block; font-size:10px; font-weight:500;
+    padding:2px 7px; border-radius:20px; margin-bottom:10px;
+    background:#FAC775; color:#412402;
+  }
+  .eq-prod-table { width:100%; border-collapse:collapse; font-size:12px; }
+  .eq-prod-table th {
+    font-size:10px; font-weight:500; color:var(--text3);
+    text-align:left; padding:5px 6px;
+    border-bottom:0.5px solid var(--border); background:transparent;
+    white-space:nowrap;
+  }
+  .eq-prod-table td { padding:6px 6px; border-bottom:0.5px solid var(--border); color:var(--text); }
+  .eq-prod-table tr:last-child td { border-bottom:none; }
+  .eq-prod-table .td-nome { font-weight:500; color:var(--text2); }
+  .eq-prod-table .td-bruta { color:var(--text); }
+  .eq-prod-table .td-liq { color:var(--green); font-weight:500; }
+  .eq-prod-table .td-liq.isento { color:var(--blue); }
+  .eq-selected-row td { background:rgba(29,158,117,0.08); }
 </style>
 </head>
 <body>
@@ -389,6 +437,29 @@
     <p style="font-size:13px;color:var(--text2);margin-top:10px;line-height:1.7">
       A isenção de IR funciona como um bônus invisível. Para comparar corretamente com um CDB, calcule a taxa bruta de um CDB que entregue o mesmo líquido. Se a sua corretora oferece CDBs acima desse percentual, o CDB pode ser mais vantajoso.
     </p>
+  </div>
+
+  <!-- EQUIVALÊNCIAS -->
+  <div class="card">
+    <p class="section-title">equivalências entre produtos — comparativo por faixa de IR</p>
+
+    <div class="eq-input-row">
+      <label>Produto de referência:</label>
+      <select id="eq-produto" onchange="atualizarLabelEqTaxa()">
+        <option value="pre">CDB Pré-fixado</option>
+        <option value="pos">CDB Pós-fixado</option>
+        <option value="lci">LCI / LCA</option>
+        <option value="ipca">Spread IPCA+</option>
+      </select>
+      <label id="eq-taxa-label">Taxa bruta:</label>
+      <input type="number" id="eq-taxa" min="0" max="200" step="0.01" value="13.00" style="width:100px">
+      <label id="eq-taxa-unidade" style="margin-left:-6px">% a.a.</label>
+      <span id="eq-taxa-hint" style="font-size:11px;color:var(--text3);display:none"></span>
+    </div>
+
+    <div class="eq-faixa-grid" id="eq-faixa-grid">
+      <!-- preenchido via JS -->
+    </div>
   </div>
 
   <!-- GUIA -->
@@ -617,6 +688,129 @@ function render(){
   `;
 
   renderChart(P, M, CDI, pCDB, pLCI, PRE, SIPCA, IPCA, IR, scenario);
+  renderEquivalencias(CDI, pCDB, pLCI, PRE, SIPCA, IPCA);
+}
+// ─────────────────────────────────────────────
+// Equivalências
+// ─────────────────────────────────────────────
+function atualizarLabelEqTaxa(){
+  const prod = document.getElementById('eq-produto').value;
+  const unidades = { pre:'% a.a.', pos:'% do CDI', lci:'% do CDI', ipca:'% a.a. (spread)' };
+  const labels   = { pre:'Taxa bruta:', pos:'Taxa bruta:', lci:'Taxa bruta:', ipca:'Spread:' };
+  const defaults = { pre:'13.00', pos:'110.00', lci:'91.00', ipca:'6.50' };
+  document.getElementById('eq-taxa-label').textContent   = labels[prod];
+  document.getElementById('eq-taxa-unidade').textContent = unidades[prod];
+  document.getElementById('eq-taxa').value               = defaults[prod];
+  const hint = document.getElementById('eq-taxa-hint');
+  if(prod === 'ipca'){ hint.style.display='inline'; hint.textContent='(taxa total = IPCA + spread)'; }
+  else { hint.style.display='none'; }
+  render();
+}
+
+function renderEquivalencias(CDI, pCDB, pLCI, PRE, SIPCA, IPCA){
+  const prod   = document.getElementById('eq-produto').value;
+  const taxaIn = parseFloat(document.getElementById('eq-taxa').value)||0;
+
+  // Converte input → taxa bruta decimal a.a.
+  // CDB Pós / LCI/LCA : % do CDI  → bruta = (taxaIn/100) * CDI
+  // CDB Pré           : % a.a.    → bruta = taxaIn/100
+  // IPCA+             : spread    → bruta = IPCA + (taxaIn/100)
+  let taxaRef;
+  if(prod === 'pos' || prod === 'lci') taxaRef = (taxaIn / 100) * CDI;
+  else if(prod === 'ipca')             taxaRef = IPCA + (taxaIn / 100);
+  else                                 taxaRef = taxaIn / 100;
+
+  const hoje = new Date();
+  function addDays(d, n){ const r=new Date(d); r.setDate(r.getDate()+n); return r; }
+  function fmtDate(d){ return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'}); }
+
+  const faixas = [
+    { titulo:'Até 6 meses',        irRate:0.225, irLabel:'22,5% IR', descPrazo:'até 180 dias',      data: fmtDate(addDays(hoje,180)), corClass:'faixa-180' },
+    { titulo:'A partir de 6 meses',irRate:0.20,  irLabel:'20% IR',   descPrazo:'181 a 360 dias',    data: fmtDate(addDays(hoje,181)), corClass:'faixa-360' },
+    { titulo:'A partir de 1 ano',  irRate:0.175, irLabel:'17,5% IR', descPrazo:'361 a 720 dias',    data: fmtDate(addDays(hoje,361)), corClass:'faixa-720' },
+    { titulo:'A partir de 2 anos', irRate:0.15,  irLabel:'15% IR',   descPrazo:'acima de 720 dias', data: fmtDate(addDays(hoje,721)), corClass:'faixa-721' },
+  ];
+
+  // Rent. líquida do produto de referência nesta faixa
+  function liqRef(irRate){
+    if(prod === 'lci') return taxaRef;          // isento: líquida = bruta
+    return taxaRef * (1 - irRate);
+  }
+
+  // Taxa bruta equivalente para entregar liqAlvo
+  function brutaEquiv(liqAlvo, irRate, isIsento){
+    if(isIsento) return liqAlvo;               // LCI/LCA isento: bruta = líquida
+    return liqAlvo / (1 - irRate);
+  }
+
+  const grid = document.getElementById('eq-faixa-grid');
+  grid.innerHTML = faixas.map(f => {
+    const liqAlvo   = liqRef(f.irRate);
+    const brutaPre  = brutaEquiv(liqAlvo, f.irRate, false);
+    const brutaPos  = brutaEquiv(liqAlvo, f.irRate, false);
+    const brutaLci  = brutaEquiv(liqAlvo, f.irRate, true);   // isento
+    const brutaIpca = brutaEquiv(liqAlvo, f.irRate, false);
+
+    // CDB Pós / LCI/LCA → % do CDI
+    const pctCDIPos  = CDI > 0 ? (brutaPos / CDI) * 100 : 0;
+    const pctCDILci  = CDI > 0 ? (brutaLci / CDI) * 100 : 0;
+    // IPCA+ → usa IPCA da calculadora + spread equivalente
+    const spreadIpca = brutaIpca - IPCA;
+
+    const produtos = [
+      {
+        tipo: 'pre', nome: 'CDB Pré', isIsento: false, bruta: brutaPre,
+        brutaDisplay: fmtPct(brutaPre * 100),
+        brutaSub: null
+      },
+      {
+        tipo: 'pos', nome: 'CDB Pós', isIsento: false, bruta: brutaPos,
+        brutaDisplay: pctCDIPos.toFixed(2).replace('.',',') + '% CDI',
+        brutaSub: fmtPct(brutaPos * 100) + ' a.a.'
+      },
+      {
+        tipo: 'lci', nome: 'LCI / LCA', isIsento: true, bruta: brutaLci,
+        brutaDisplay: pctCDILci.toFixed(2).replace('.',',') + '% CDI',
+        brutaSub: fmtPct(brutaLci * 100) + ' a.a.'
+      },
+      {
+        tipo: 'ipca', nome: 'IPCA+', isIsento: false, bruta: brutaIpca,
+        // exibe spread sobre o IPCA atual da calculadora
+        brutaDisplay: 'IPCA + ' + fmtPct(spreadIpca * 100),
+        brutaSub: 'IPCA ' + fmtPct(IPCA * 100) + ' + ' + fmtPct(spreadIpca * 100) + ' = ' + fmtPct(brutaIpca * 100) + ' a.a.'
+      },
+    ];
+
+    const rows = produtos.map(p => {
+      const liq   = p.isIsento ? p.bruta : p.bruta * (1 - f.irRate);
+      const isSel = p.tipo === prod;
+      return `<tr class="${isSel ? 'eq-selected-row' : ''}">
+        <td class="td-nome">${p.nome}${isSel ? ' ★' : ''}</td>
+        <td class="td-bruta">
+          ${p.brutaDisplay}
+          ${p.brutaSub ? `<br><span style="font-size:10px;color:var(--text3)">${p.brutaSub}</span>` : ''}
+        </td>
+        <td class="td-liq${p.isIsento ? ' isento' : ''}">${fmtPct(liq * 100)}</td>
+      </tr>`;
+    }).join('');
+
+    return `
+    <div class="eq-faixa-card ${f.corClass}">
+      <div class="eq-faixa-title">${f.titulo}</div>
+      <div class="eq-faixa-date">Data: ${f.data} &nbsp;(${f.descPrazo})</div>
+      <span class="eq-faixa-ir-badge">${f.irLabel}</span>
+      <table class="eq-prod-table">
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th>Taxa Bruta equiv.</th>
+            <th>Rent. Líquida</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  }).join('');
 }
 
 // ─────────────────────────────────────────────
@@ -673,6 +867,9 @@ function setScenario(s){
 // Init
 // ─────────────────────────────────────────────
 document.querySelectorAll('input,select').forEach(el=>el.addEventListener('input',render));
+// Inputs do card de equivalências também disparam recálculo
+document.getElementById('eq-produto').addEventListener('change', render);
+document.getElementById('eq-taxa').addEventListener('input', render);
 render();          // renderiza imediatamente com defaults
 carregarDados();   // depois carrega dados.json (rápido — arquivo local do site)
 </script>
