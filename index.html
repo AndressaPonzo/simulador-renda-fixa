@@ -315,7 +315,7 @@
 
     <div class="slider-row">
       <label>Selic atual (% a.a.) <span class="auto-tag" id="atag-selic">BCB</span></label>
-      <input type="range" id="selic" min="10" max="16" step="0.25" value="13.25">
+      <input type="range" id="selic" min="8" max="16" step="0.05" value="13.25">
       <span class="slider-val" id="selic-out">13,25%</span>
     </div>
     <div class="slider-row">
@@ -658,11 +658,6 @@ function render(){
   document.getElementById('ir-tip').innerHTML =
     `<strong>Alíquota atual para este prazo: ${irPct}.</strong> ${prox} LCI e LCA são sempre isentos de IR.`;
 
-  // Equivalência
-  const eq = (CDI*pLCI)/(1-IR);
-  document.getElementById('equiv-tip').innerHTML =
-    `Uma LCI a <strong>${(pLCI*100).toFixed(1).replace('.',',')}% do CDI</strong> equivale, líquido de IR, a um CDB de <strong>${fmtPct((eq/CDI)*100)} do CDI</strong> (${fmtPct(eq*100)} a.a.) para ${M} meses com IR de ${irPct}. Se sua corretora oferecer CDBs acima de ${fmtPct((eq/CDI)*100)} CDI, o CDB pode superar a LCI.`;
-
   // Best tip
   const cai  = SPROJ < SEL-0.005;
   const sobe = SPROJ > SEL+0.005;
@@ -873,11 +868,11 @@ function setScenario(s){
 // Init
 // ─────────────────────────────────────────────
 document.querySelectorAll('input,select').forEach(el=>el.addEventListener('input',render));
-// Inputs do card de equivalências também disparam recálculo
-document.getElementById('eq-produto').addEventListener('change', render);
+// eq-produto chama atualizarLabelEqTaxa que já dispara render() internamente
+document.getElementById('eq-produto').addEventListener('change', atualizarLabelEqTaxa);
 document.getElementById('eq-taxa').addEventListener('input', render);
-render();          // renderiza imediatamente com defaults
-carregarDados();   // depois carrega dados.json (rápido — arquivo local do site)
+render();
+carregarDados();
 </script>
 </body>
 </html>
