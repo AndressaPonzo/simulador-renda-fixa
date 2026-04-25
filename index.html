@@ -298,14 +298,17 @@
         <input type="number" id="valor" value="1000" min="100" step="100">
       </div>
       <div class="input-group">
-        <label>Prazo</label>
+        <label>Prazo &nbsp;<span id="prazo-venc" style="font-size:11px;color:var(--text3);font-weight:400"></span></label>
         <select id="prazo">
           <option value="1">1 mês</option>
           <option value="3">3 meses</option>
-          <option value="6">6 meses</option>
-          <option value="12" selected>12 meses</option>
+          <option value="5">5 meses</option>
+          <option value="6" data-ir="+6 meses (181 dias)">+6 meses — 181 dias ★ IR 20%</option>
+          <option value="11">11 meses</option>
+          <option value="12" selected data-ir="+12 meses (361 dias)">+12 meses — 361 dias ★ IR 17,5%</option>
           <option value="18">18 meses</option>
-          <option value="24">24 meses</option>
+          <option value="23">23 meses</option>
+          <option value="24" data-ir="+24 meses (721 dias)">+24 meses — 721 dias ★ IR 15%</option>
           <option value="36">36 meses</option>
           <option value="48">48 meses</option>
           <option value="60">60 meses</option>
@@ -725,10 +728,10 @@ function renderEquivalencias(CDI, pCDB, pLCI, PRE, SIPCA, IPCA){
   function fmtDate(d){ return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'}); }
 
   const faixas = [
-    { titulo:'Até 6 meses',        meses:6,  irRate:0.225, irLabel:'22,5% IR', descPrazo:'até 180 dias',      data: fmtDate(addDays(hoje,180)), corClass:'faixa-180' },
-    { titulo:'A partir de 6 meses',meses:12, irRate:0.20,  irLabel:'20% IR',   descPrazo:'181 a 360 dias',    data: fmtDate(addDays(hoje,181)), corClass:'faixa-360' },
-    { titulo:'A partir de 1 ano',  meses:24, irRate:0.175, irLabel:'17,5% IR', descPrazo:'361 a 720 dias',    data: fmtDate(addDays(hoje,361)), corClass:'faixa-720' },
-    { titulo:'A partir de 2 anos', meses:36, irRate:0.15,  irLabel:'15% IR',   descPrazo:'acima de 720 dias', data: fmtDate(addDays(hoje,721)), corClass:'faixa-721' },
+    { titulo:'Até 6 meses',        meses:6,  irRate:0.225, irLabel:'22,5% IR', dataStr: fmtDate(addDays(hoje,180)) + ' &nbsp;(até 180 dias)',                                                             corClass:'faixa-180' },
+    { titulo:'A partir de 6 meses',meses:12, irRate:0.20,  irLabel:'20% IR',   dataStr: 'De ' + fmtDate(addDays(hoje,181)) + ' a ' + fmtDate(addDays(hoje,360)) + ' &nbsp;(181 a 360 dias)',             corClass:'faixa-360' },
+    { titulo:'A partir de 1 ano',  meses:24, irRate:0.175, irLabel:'17,5% IR', dataStr: 'De ' + fmtDate(addDays(hoje,361)) + ' a ' + fmtDate(addDays(hoje,720)) + ' &nbsp;(361 a 720 dias)',             corClass:'faixa-720' },
+    { titulo:'A partir de 2 anos', meses:36, irRate:0.15,  irLabel:'15% IR',   dataStr: 'A partir de ' + fmtDate(addDays(hoje,721)) + ' &nbsp;(acima de 720 dias)',                                      corClass:'faixa-721' },
   ];
 
   // Rentabilidade líquida anualizada do produto de referência — juros compostos
@@ -810,7 +813,7 @@ function renderEquivalencias(CDI, pCDB, pLCI, PRE, SIPCA, IPCA){
       <div class="eq-faixa-title">
         ${f.titulo} <span class="eq-faixa-ir-badge">${f.irLabel}</span>
       </div>
-      <div class="eq-faixa-date">Data: ${f.data} &nbsp;(${f.descPrazo})</div>
+      <div class="eq-faixa-date">${f.dataStr}</div>
       <table class="eq-prod-table">
         <thead>
           <tr>
@@ -876,13 +879,26 @@ function setScenario(s){
 }
 
 // ─────────────────────────────────────────────
+// Data de vencimento ao lado do label Prazo
+// ─────────────────────────────────────────────
+function atualizarPrazoVenc(){
+  const M = parseInt(document.getElementById('prazo').value);
+  const venc = new Date();
+  venc.setMonth(venc.getMonth() + M);
+  const str = venc.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'2-digit'});
+  document.getElementById('prazo-venc').textContent = '→ venc. ' + str;
+}
+
+// ─────────────────────────────────────────────
 // Init
 // ─────────────────────────────────────────────
 document.querySelectorAll('input,select').forEach(el=>el.addEventListener('input',render));
 // eq-produto chama atualizarLabelEqTaxa que já dispara render() internamente
 document.getElementById('eq-produto').addEventListener('change', atualizarLabelEqTaxa);
 document.getElementById('eq-taxa').addEventListener('input', render);
+document.getElementById('prazo').addEventListener('change', atualizarPrazoVenc);
 render();
+atualizarPrazoVenc();
 carregarDados();
 </script>
 </body>
