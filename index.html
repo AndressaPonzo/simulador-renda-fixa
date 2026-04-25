@@ -730,42 +730,38 @@ function renderEquivalencias(CDI, pCDB, pLCI, PRE, SIPCA, IPCA){
   function fmtDate(d){ return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'}); }
 
   const faixas = [
-    { titulo:'Até 6 meses',        meses:6,  irRate:0.225, irLabel:'22,5% IR', dataStr: fmtDate(addDays(hoje,180)) + ' &nbsp;(até 180 dias)',                                                             corClass:'faixa-180' },
-    { titulo:'A partir de 6 meses',meses:12, irRate:0.20,  irLabel:'20% IR',   dataStr: 'De ' + fmtDate(addDays(hoje,181)) + ' a ' + fmtDate(addDays(hoje,360)) + ' &nbsp;(181 a 360 dias)',             corClass:'faixa-360' },
-    { titulo:'A partir de 1 ano',  meses:24, irRate:0.175, irLabel:'17,5% IR', dataStr: 'De ' + fmtDate(addDays(hoje,361)) + ' a ' + fmtDate(addDays(hoje,720)) + ' &nbsp;(361 a 720 dias)',             corClass:'faixa-720' },
-    { titulo:'A partir de 2 anos', meses:36, irRate:0.15,  irLabel:'15% IR',   dataStr: 'A partir de ' + fmtDate(addDays(hoje,721)) + ' &nbsp;(acima de 720 dias)',                                      corClass:'faixa-721' },
+    { titulo:'Até 6 meses',        dias:180, irRate:0.225, irLabel:'22,5% IR', dataStr: fmtDate(addDays(hoje,180)) + ' &nbsp;(até 180 dias)',                                                             corClass:'faixa-180' },
+    { titulo:'A partir de 6 meses',dias:181, irRate:0.20,  irLabel:'20% IR',   dataStr: 'De ' + fmtDate(addDays(hoje,181)) + ' a ' + fmtDate(addDays(hoje,360)) + ' &nbsp;(181 a 360 dias)',             corClass:'faixa-360' },
+    { titulo:'A partir de 1 ano',  dias:361, irRate:0.175, irLabel:'17,5% IR', dataStr: 'De ' + fmtDate(addDays(hoje,361)) + ' a ' + fmtDate(addDays(hoje,720)) + ' &nbsp;(361 a 720 dias)',             corClass:'faixa-720' },
+    { titulo:'A partir de 2 anos', dias:721, irRate:0.15,  irLabel:'15% IR',   dataStr: 'A partir de ' + fmtDate(addDays(hoje,721)) + ' &nbsp;(acima de 720 dias)',                                      corClass:'faixa-721' },
   ];
 
-  // Rentabilidade líquida anualizada do produto de referência — juros compostos
-  // igual ao calcRet() do render() principal
-  function liqRefAnual(taxaAnual, meses, irRate, isIsento){
-    const anos  = meses / 12;
-    const bruto = Math.pow(1 + taxaAnual, anos) - 1;   // ganho bruto no período
+  // Rentabilidade líquida anualizada — juros compostos com dias exatos
+  function liqRefAnual(taxaAnual, dias, irRate, isIsento){
+    const anos = dias / 365;
+    const bruto = Math.pow(1 + taxaAnual, anos) - 1;
     const liqPeriodo = isIsento ? bruto : bruto * (1 - irRate);
-    // reconverte para taxa anual equivalente
     return Math.pow(1 + liqPeriodo, 1 / anos) - 1;
   }
 
-  // Taxa bruta anual que, aplicada pelo mesmo prazo, entrega a mesma liq anual
-  function brutaEquiv(liqAnual, meses, irRate, isIsento){
-    if(isIsento) return liqAnual;  // LCI/LCA: bruta = líquida (isento)
-    const anos = meses / 12;
-    // liqAnual = ((1 + bruta)^anos - 1) * (1-ir) reconstituído como taxa anual
-    // → (1 + bruta)^anos = 1 + liqAnual^anos*(1/(1-ir))... resolução direta:
-    const liqPeriodo = Math.pow(1 + liqAnual, anos) - 1;  // liq no período
-    const brutaPeriodo = liqPeriodo / (1 - irRate);        // bruta no período
-    return Math.pow(1 + brutaPeriodo, 1 / anos) - 1;       // bruta anualizada
+  // Taxa bruta anual equivalente para o mesmo líquido anual, usando dias exatos
+  function brutaEquiv(liqAnual, dias, irRate, isIsento){
+    if(isIsento) return liqAnual;
+    const anos = dias / 365;
+    const liqPeriodo = Math.pow(1 + liqAnual, anos) - 1;
+    const brutaPeriodo = liqPeriodo / (1 - irRate);
+    return Math.pow(1 + brutaPeriodo, 1 / anos) - 1;
   }
 
   const grid = document.getElementById('eq-faixa-grid');
   grid.innerHTML = faixas.map(f => {
     const isIsentoRef = prod === 'lci';
-    const liqAlvo   = liqRefAnual(taxaRef, f.meses, f.irRate, isIsentoRef);
+    const liqAlvo   = liqRefAnual(taxaRef, f.dias, f.irRate, isIsentoRef);
 
-    const brutaPre  = brutaEquiv(liqAlvo, f.meses, f.irRate, false);
-    const brutaPos  = brutaEquiv(liqAlvo, f.meses, f.irRate, false);
-    const brutaLci  = brutaEquiv(liqAlvo, f.meses, f.irRate, true);
-    const brutaIpca = brutaEquiv(liqAlvo, f.meses, f.irRate, false);
+    const brutaPre  = brutaEquiv(liqAlvo, f.dias, f.irRate, false);
+    const brutaPos  = brutaEquiv(liqAlvo, f.dias, f.irRate, false);
+    const brutaLci  = brutaEquiv(liqAlvo, f.dias, f.irRate, true);
+    const brutaIpca = brutaEquiv(liqAlvo, f.dias, f.irRate, false);
 
     // CDB Pós / LCI/LCA → % do CDI
     const pctCDIPos  = CDI > 0 ? (brutaPos / CDI) * 100 : 0;
@@ -798,7 +794,7 @@ function renderEquivalencias(CDI, pCDB, pLCI, PRE, SIPCA, IPCA){
     ];
 
     const rows = produtos.map(p => {
-      const liq = liqRefAnual(p.bruta, f.meses, f.irRate, p.isIsento);
+      const liq = liqRefAnual(p.bruta, f.dias, f.irRate, p.isIsento);
       const isSel = p.tipo === prod;
       return `<tr class="${isSel ? 'eq-selected-row' : ''}">
         <td class="td-nome">${p.nome}${isSel ? ' ★' : ''}</td>
