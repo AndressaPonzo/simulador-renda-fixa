@@ -300,18 +300,18 @@
       <div class="input-group">
         <label>Prazo &nbsp;<span id="prazo-venc" style="font-size:11px;color:var(--text3);font-weight:400"></span></label>
         <select id="prazo">
-          <option value="1">1 mês</option>
-          <option value="3">3 meses</option>
-          <option value="5">5 meses</option>
-          <option value="6" data-ir="+6 meses (181 dias)">+6 meses — 181 dias ★ IR 20%</option>
-          <option value="11">11 meses</option>
-          <option value="12" selected data-ir="+12 meses (361 dias)">+12 meses — 361 dias ★ IR 17,5%</option>
-          <option value="18">18 meses</option>
-          <option value="23">23 meses</option>
-          <option value="24" data-ir="+24 meses (721 dias)">+24 meses — 721 dias ★ IR 15%</option>
-          <option value="36">36 meses</option>
-          <option value="48">48 meses</option>
-          <option value="60">60 meses</option>
+          <option value="30">1 mês</option>
+          <option value="90">3 meses</option>
+          <option value="150">5 meses</option>
+          <option value="181">+6 meses — 181 dias ★ IR 20%</option>
+          <option value="330">11 meses</option>
+          <option value="361" selected>+12 meses — 361 dias ★ IR 17,5%</option>
+          <option value="540">18 meses</option>
+          <option value="690">23 meses</option>
+          <option value="721">+24 meses — 721 dias ★ IR 15%</option>
+          <option value="1080">36 meses</option>
+          <option value="1440">48 meses</option>
+          <option value="1800">60 meses</option>
         </select>
       </div>
     </div>
@@ -495,12 +495,13 @@
 // ─────────────────────────────────────────────
 function fmt(n){ return n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function fmtPct(n){ return n.toFixed(2).replace('.',',')+'%'; }
-function getIR(m){ return m<=6?.225:m<=12?.20:m<=24?.175:.15; }
+function getDias(){ return parseInt(document.getElementById('prazo').value); }
+function getIR(dias){ return dias<=180?.225:dias<=360?.20:dias<=720?.175:.15; }
 
-function highlightIR(meses){
+function highlightIR(dias){
   const map={'ir-180':'22,5%','ir-360':'20%','ir-720':'17,5%','ir-721':'15%'};
   Object.entries(map).forEach(([id,v])=>{ document.getElementById(id).className='badge badge-gray'; document.getElementById(id).textContent=v; });
-  const t=meses<=6?'ir-180':meses<=12?'ir-360':meses<=24?'ir-720':'ir-721';
+  const t=dias<=180?'ir-180':dias<=360?'ir-360':dias<=720?'ir-720':'ir-721';
   document.getElementById(t).className='ir-active';
   document.getElementById(t).textContent=map[t]+' ◀ você está aqui';
 }
@@ -582,8 +583,7 @@ function aplicarDados(d, origem){
 // ─────────────────────────────────────────────
 // Cálculo de retorno
 // ─────────────────────────────────────────────
-function calcRet(principal, taxa, meses, ir, isento){
-  const anos  = meses/12;
+function calcRet(principal, taxa, anos, ir, isento){
   const bruto = principal*(Math.pow(1+taxa,anos)-1);
   const imp   = isento?0:bruto*ir;
   const liq   = bruto-imp;
@@ -599,7 +599,8 @@ let evChart=null, scenario='all';
 
 function render(){
   const P    = parseFloat(document.getElementById('valor').value)||1000;
-  const M    = parseInt(document.getElementById('prazo').value);
+  const DIAS = parseInt(document.getElementById('prazo').value);
+  const ANOS = DIAS / 365;   // conversão precisa por dias
   const SEL  = parseFloat(document.getElementById('selic').value)/100;
   const SPROJ= parseFloat(document.getElementById('selic-proj').value)/100;
   const IPCA = parseFloat(document.getElementById('ipca').value)/100;
@@ -618,7 +619,7 @@ function render(){
   document.getElementById('spread-ipca-out').textContent= fmtPct(SIPCA*100);
 
   const CDI = ((SEL+SPROJ)/2)*0.999;
-  const IR  = getIR(M);
+  const IR  = getIR(DIAS);
   const irPct = IR===.225?'22,5%':IR===.20?'20%':IR===.175?'17,5%':'15%';
 
   const prods = [
@@ -630,7 +631,7 @@ function render(){
     {nome:'Tesouro Selic',                                           taxa:CDI*1.001, ir:IR,iso:false,tipo:'tsel'},
   ];
 
-  const res = prods.map(p=>({...p,...calcRet(P,p.taxa,M,p.ir,p.iso)}))
+  const res = prods.map(p=>({...p,...calcRet(P,p.taxa,ANOS,p.ir,p.iso)}))
                    .sort((a,b)=>b.rentAno-a.rentAno);
   const best = res[0];
 
@@ -653,10 +654,11 @@ function render(){
   document.getElementById('m-real').textContent   = fmtPct(((1+best.rentAno)/(1+IPCA)-1)*100)+' a.a.';
 
   // IR highlight
-  highlightIR(M);
-  const prox = M<=6?`Espere mais ${7-M} meses para cair para 20%.`
-              :M<=12?`Espere mais ${13-M} meses para cair para 17,5%.`
-              :M<=24?`Espere mais ${25-M} meses para cair para 15%.`
+  highlightIR(DIAS);
+  const diasRestante180 = 181-DIAS, diasRestante360 = 361-DIAS, diasRestante720 = 721-DIAS;
+  const prox = DIAS<=180 ? `Faltam ${diasRestante180} dias (${Math.ceil(diasRestante180/30)} meses) para cair para 20%.`
+              :DIAS<=360 ? `Faltam ${diasRestante360} dias (${Math.ceil(diasRestante360/30)} meses) para cair para 17,5%.`
+              :DIAS<=720 ? `Faltam ${diasRestante720} dias (${Math.ceil(diasRestante720/30)} meses) para cair para 15%.`
               :'Você já está na alíquota mínima de 15%. Para isenção total, prefira LCI/LCA.';
   document.getElementById('ir-tip').innerHTML =
     `<strong>Alíquota atual para este prazo: ${irPct}.</strong> ${prox} LCI e LCA são sempre isentos de IR.`;
@@ -690,7 +692,7 @@ function render(){
     </div>
   `;
 
-  renderChart(P, M, CDI, pCDB, pLCI, PRE, SIPCA, IPCA, IR, scenario);
+  renderChart(P, DIAS, ANOS, CDI, pCDB, pLCI, PRE, SIPCA, IPCA, IR, scenario);
   renderEquivalencias(CDI, pCDB, pLCI, PRE, SIPCA, IPCA);
 }
 // ─────────────────────────────────────────────
@@ -831,9 +833,17 @@ function renderEquivalencias(CDI, pCDB, pLCI, PRE, SIPCA, IPCA){
 // ─────────────────────────────────────────────
 // Gráfico
 // ─────────────────────────────────────────────
-function renderChart(P,M,CDI,pCDB,pLCI,PRE,SIPCA,IPCA,IR,sc){
-  const labels = Array.from({length:M+1},(_,i)=>i===0?'Início':`M${i}`);
-  function ser(t,ir,iso){ return labels.map((_,i)=>{ const a=i/12,b=P*(Math.pow(1+t,a)-1); return Math.round(P+b-(iso?0:b*ir)); }); }
+function renderChart(P,DIAS,ANOS,CDI,pCDB,pLCI,PRE,SIPCA,IPCA,IR,sc){
+  // Gráfico com pontos mensais aproximados baseado nos dias totais
+  const nPontos = Math.round(DIAS / 30);
+  const labels = Array.from({length:nPontos+1},(_,i)=>i===0?'Início':`M${i}`);
+  function ser(t,ir,iso){
+    return labels.map((_,i)=>{
+      const a = (i/nPontos)*ANOS;  // fração do período total
+      const b = P*(Math.pow(1+t,a)-1);
+      return Math.round(P+b-(iso?0:b*ir));
+    });
+  }
 
   let cAdj=CDI;
   if(sc==='up')   cAdj=(CDI/0.999+.01)*.999;
@@ -882,9 +892,9 @@ function setScenario(s){
 // Data de vencimento ao lado do label Prazo
 // ─────────────────────────────────────────────
 function atualizarPrazoVenc(){
-  const M = parseInt(document.getElementById('prazo').value);
+  const DIAS = parseInt(document.getElementById('prazo').value);
   const venc = new Date();
-  venc.setMonth(venc.getMonth() + M);
+  venc.setDate(venc.getDate() + DIAS);
   const str = venc.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'2-digit'});
   document.getElementById('prazo-venc').textContent = '→ venc. ' + str;
 }
