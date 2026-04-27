@@ -1,15 +1,84 @@
 {
   "selic": 14.65,
-  "selicProjetada": 11.5,
+  "selicMeta": 14.75,
+  "selicProjetada": 13.0,
   "ipca": 4.14,
-  "atualizadoEm": "24/04/2026 às 18:40h (horário de Brasília)",
-  "atualizadoEmISO": "2026-04-24T21:40:26Z",
-  "erros": [
-    "focus: resposta vazia"
+  "focusSelic": [],
+  "focusIPCA": [],
+  "focusData": "",
+  "copomCalendario": [
+    {
+      "data": "2026-04-29",
+      "selic": 14.75,
+      "realizada": false
+    },
+    {
+      "data": "2026-06-17",
+      "selic": 14.75,
+      "realizada": false
+    },
+    {
+      "data": "2026-08-05",
+      "selic": 14.75,
+      "realizada": false
+    },
+    {
+      "data": "2026-09-16",
+      "selic": 14.75,
+      "realizada": false
+    },
+    {
+      "data": "2026-11-04",
+      "selic": 14.75,
+      "realizada": false
+    },
+    {
+      "data": "2026-12-09",
+      "selic": 14.75,
+      "realizada": false
+    },
+    {
+      "data": "2027-02-03",
+      "selic": 14.75,
+      "realizada": false
+    },
+    {
+      "data": "2027-03-17",
+      "selic": 14.75,
+      "realizada": false
+    },
+    {
+      "data": "2027-05-05",
+      "selic": 14.75,
+      "realizada": false
+    },
+    {
+      "data": "2027-06-16",
+      "selic": 14.75,
+      "realizada": false
+    },
+    {
+      "data": "2027-07-28",
+      "selic": 14.75,
+      "realizada": false
+    },
+    {
+      "data": "2027-09-15",
+      "selic": 14.75,
+      "realizada": false
+    },
+    {
+      "data": "2027-11-03",
+      "selic": 14.75,
+      "realizada": false
+    },
+    {
+      "data": "2027-12-08",
+      "selic": 14.75,
+      "realizada": false
+    }
   ],
-  "fontes": {
-    "selic": "BCB SGS série 4189 — Selic anualizada base 252",
-    "selicProjetada": "BCB Focus — Expectativas de Mercado (mediana)",
-    "ipca": "BCB SGS série 13522 — IPCA acumulado 12 meses"
-  }
+  "atualizadoEm": "26/04/2026 às 21:08h (horário de Brasília)",
+  "atualizadoEmISO": "2026-04-27T00:08:02Z",
+  "erros": []
 }
