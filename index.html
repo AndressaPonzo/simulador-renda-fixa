@@ -697,36 +697,58 @@ function inicializarFallbacks() {
   if (!REUNIOES_COPOM.length) REUNIOES_COPOM = COPOM_FALLBACK;
   if (!FOCUS_SELIC.length)    FOCUS_SELIC    = FOCUS_SELIC_FALLBACK;
   if (!FOCUS_IPCA.length)     FOCUS_IPCA     = FOCUS_IPCA_FALLBACK;
+  if (!FOCUS_DATA)            FOCUS_DATA     = '25/04/2026';
 }
 
 // Calcula CDI médio ponderado pelo tempo para um prazo em dias a partir de hoje
-// Usa a trajetória real das reuniões Copom
+// Cada reunião Copom define a Selic que vige ATÉ a próxima reunião
 function calcCDIPonderado(diasTotal) {
   const hoje = new Date();
-  const fim  = new Date(hoje); fim.setDate(fim.getDate() + diasTotal);
+  hoje.setHours(0,0,0,0);
+  const fim = new Date(hoje);
+  fim.setDate(fim.getDate() + diasTotal);
+
+  // Descobre a Selic vigente hoje (última reunião já realizada)
+  // A reunião define a Selic que começa a viger na data dela
+  let selicHoje = SELIC_META; // padrão = meta atual
+  for (let i = 0; i < REUNIOES_COPOM.length; i++) {
+    const dr = new Date(REUNIOES_COPOM[i].data + 'T12:00:00');
+    if (dr <= hoje) selicHoje = REUNIOES_COPOM[i].selic;
+  }
 
   let somaSelicDias = 0;
   let diasContados  = 0;
 
-  for (let i = 0; i < REUNIOES_COPOM.length; i++) {
-    const inicioVigencia = i === 0
-      ? hoje
-      : new Date(Math.max(hoje, new Date(REUNIOES_COPOM[i].data)));
-    const fimVigencia = i < REUNIOES_COPOM.length - 1
-      ? new Date(Math.min(fim, new Date(REUNIOES_COPOM[i+1].data)))
+  // Período de hoje até a próxima reunião — usa selicHoje
+  // Depois cada reunião define a nova Selic até a próxima
+  const reunioesFuturas = REUNIOES_COPOM.filter(r => {
+    const dr = new Date(r.data + 'T12:00:00');
+    return dr > hoje;
+  });
+
+  // Segmento inicial: hoje → primeira reunião futura (ou fim)
+  const primeiraFutura = reunioesFuturas.length > 0
+    ? new Date(reunioesFuturas[0].data + 'T12:00:00')
+    : fim;
+  const fimSeg0 = primeiraFutura < fim ? primeiraFutura : fim;
+  const diasSeg0 = (fimSeg0 - hoje) / 86400000;
+  somaSelicDias += selicHoje * diasSeg0;
+  diasContados  += diasSeg0;
+
+  // Segmentos das reuniões futuras
+  for (let i = 0; i < reunioesFuturas.length; i++) {
+    const inicioSeg = new Date(reunioesFuturas[i].data + 'T12:00:00');
+    if (inicioSeg >= fim) break;
+    const fimSeg = i < reunioesFuturas.length - 1
+      ? new Date(Math.min(fim, new Date(reunioesFuturas[i+1].data + 'T12:00:00')))
       : fim;
-
-    if (inicioVigencia >= fim) break;
-    if (fimVigencia <= hoje) continue;
-
-    const dias = Math.max(0, (fimVigencia - inicioVigencia) / 86400000);
-    somaSelicDias += REUNIOES_COPOM[i].selic * dias;
+    const dias = Math.max(0, (fimSeg - inicioSeg) / 86400000);
+    somaSelicDias += reunioesFuturas[i].selic * dias;
     diasContados  += dias;
   }
 
-  if (diasContados <= 0) return REUNIOES_COPOM[0].selic * 0.999 / 100;
-  const selicMedia = somaSelicDias / diasContados;
-  return (selicMedia * 0.999) / 100; // CDI ≈ Selic × 0,999
+  if (diasContados <= 0) return selicHoje * 0.999 / 100;
+  return (somaSelicDias / diasContados) * 0.999 / 100;
 }
 
 // Calcula IPCA médio ponderado pelo tempo para o prazo
