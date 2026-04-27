@@ -639,9 +639,9 @@ function aplicarDados(d, origem){
   document.getElementById('selic-proj').value = proj;
   document.getElementById('ipca').value       = ipca;
 
-  // Cards de taxas
+  // Cards de taxas — Selic exibe a META (decisão Copom), CDI = meta − 0,10pp
   const cdiVal = Math.max(0, SELIC_META - 0.10);
-  document.getElementById('lv-selic').textContent = fmtPct(selic);
+  document.getElementById('lv-selic').textContent = fmtPct(SELIC_META);
   document.getElementById('lv-cdi').textContent   = fmtPct(cdiVal);
   document.getElementById('lv-proj').textContent  = fmtPct(proj);
   document.getElementById('lv-ipca').textContent  = fmtPct(ipca);
