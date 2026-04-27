@@ -60,9 +60,10 @@
 
   /* ── taxas ao vivo ── */
   .live-grid {
-    display: grid; grid-template-columns: repeat(3,minmax(0,1fr));
+    display: grid; grid-template-columns: repeat(4,minmax(0,1fr));
     gap: 8px; margin-bottom: 0;
   }
+  @media(max-width:560px){ .live-grid { grid-template-columns: repeat(2,1fr); } }
   .live-card {
     background: var(--bg2); border-radius: var(--radius); padding: 10px 8px;
     position: relative; overflow: hidden; min-width: 0;
@@ -215,8 +216,9 @@
   .focus-ano-card .fan-val.ipca  { color:var(--amber); }
   .focus-ano-card .fan-range { font-size:10px; color:var(--text3); margin-top:3px; }
   .focus-ano-card .fan-meta { font-size:9px; margin-top:3px; padding:1px 6px; border-radius:20px; display:inline-block; }
-  .focus-ano-card .fan-meta.ok   { background:#C0DD97; color:#173404; }
-  .focus-ano-card .fan-meta.warn { background:#FAC775; color:#412402; }
+  .focus-ano-card .fan-meta.ok     { background:#C0DD97; color:#173404; }
+  .focus-ano-card .fan-meta.warn   { background:#FAC775; color:#412402; }
+  .focus-ano-card .fan-meta.center { background:#F4D4A0; color:#5C3400; }
   .focus-nota { font-size:11px; color:var(--text3); margin-top:6px; line-height:1.6; }
   .copom-linha { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
   .copom-pill {
@@ -297,12 +299,17 @@
     <p class="section-title">taxas de referência — <span id="ultima-att" style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--text3)">atualizadas automaticamente</span></p>
     <div class="live-grid">
       <div class="live-card">
-        <div class="lc-lbl">Selic atual</div>
+        <div class="lc-lbl">Selic (meta Copom)</div>
         <div class="lc-val" id="lv-selic">—</div>
         <span class="lc-dot" id="tag-selic"></span>
       </div>
       <div class="live-card">
-        <div class="lc-lbl">Selic projetada Focus (12m)</div>
+        <div class="lc-lbl">CDI (≈ Selic efetiva)</div>
+        <div class="lc-val" id="lv-cdi">—</div>
+        <span class="lc-dot" id="tag-cdi"></span>
+      </div>
+      <div class="live-card">
+        <div class="lc-lbl">Selic projetada Focus (fim 2026)</div>
         <div class="lc-val" id="lv-proj">—</div>
         <span class="lc-dot" id="tag-proj"></span>
       </div>
@@ -337,7 +344,7 @@
       <div class="focus-anos-grid" id="focus-ipca-grid">
         <!-- preenchido via JS -->
       </div>
-      <div class="focus-nota">Meta BCB 2026: 3,0% (banda 1,5%–4,5%) · Fonte: BCB / Focus</div>
+      <div class="focus-nota">Meta BCB contínua: 3,0% (banda 1,5%–4,5%) · Acima do centro = entre 3% e 4,5% · Fonte: BCB / Focus</div>
     </div>
   </div>
 
@@ -380,7 +387,7 @@
     </div>
     <div class="slider-row">
       <label>IPCA projetado 12m (%) <span class="auto-tag" id="atag-ipca">BCB</span></label>
-      <input type="range" id="ipca" min="2" max="12" step="0.25" value="4.8">
+      <input type="range" id="ipca" min="2" max="12" step="0.25" value="4.86">
       <span class="slider-val" id="ipca-out">4,80%</span>
     </div>
     <div class="slider-row">
@@ -562,7 +569,7 @@ function highlightIR(dias){
 // Cache local (localStorage) — fallback se dados.json falhar
 // ─────────────────────────────────────────────
 const CACHE_KEY = 'rfb_dados_v1';
-const DEFAULTS  = { selic:14.65, selicMeta:14.75, selicProjetada:13.00, ipca:4.80 };
+const DEFAULTS  = { selic:14.50, selicMeta:14.50, selicProjetada:13.00, ipca:4.86 };
 
 function salvarCache(dados){ try{ localStorage.setItem(CACHE_KEY, JSON.stringify(dados)); }catch(e){} }
 function lerCache(){ try{ const s=localStorage.getItem(CACHE_KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
@@ -633,13 +640,15 @@ function aplicarDados(d, origem){
   document.getElementById('ipca').value       = ipca;
 
   // Cards de taxas
+  const cdiVal = Math.max(0, SELIC_META - 0.10);
   document.getElementById('lv-selic').textContent = fmtPct(selic);
+  document.getElementById('lv-cdi').textContent   = fmtPct(cdiVal);
   document.getElementById('lv-proj').textContent  = fmtPct(proj);
   document.getElementById('lv-ipca').textContent  = fmtPct(ipca);
 
   // Bolinhas
   const dotClass = origem==='fresh' ? 'lc-dot ok' : 'lc-dot warn';
-  ['tag-selic','tag-proj','tag-ipca'].forEach(id => {
+  ['tag-selic','tag-cdi','tag-proj','tag-ipca'].forEach(id => {
     document.getElementById(id).className = dotClass;
   });
 
@@ -676,36 +685,40 @@ let REUNIOES_COPOM = [];
 let FOCUS_SELIC    = [];
 let FOCUS_IPCA     = [];
 let FOCUS_DATA     = '';
-let SELIC_META     = 14.75;  // fallbacks até dados.json carregar
+let SELIC_META     = 14.75;  // será sobrescrito pelo dados.json após reunião de 29/04
 
 // Fallbacks hardcoded usados enquanto dados.json não chega
 const COPOM_FALLBACK = [
   // 2026 — datas oficiais BCB (segundo dia de cada reunião = data de decisão)
-  { data:'2026-04-29', selic:14.75, realizada:false },  // 28 e 29 de abril
-  { data:'2026-06-17', selic:14.25, realizada:false },  // 16 e 17 de junho
-  { data:'2026-08-05', selic:13.75, realizada:false },  // 04 e 05 de agosto
-  { data:'2026-09-16', selic:13.50, realizada:false },  // 15 e 16 de setembro
-  { data:'2026-11-04', selic:13.25, realizada:false },  // 03 e 04 de novembro
-  { data:'2026-12-09', selic:13.00, realizada:false },  // 08 e 09 de dezembro
-  // 2027 — datas provisórias (BCB ainda não publicou calendário oficial)
-  { data:'2027-02-03', selic:12.50, realizada:false },
-  { data:'2027-03-17', selic:12.00, realizada:false },
-  { data:'2027-05-05', selic:11.50, realizada:false },
-  { data:'2027-06-16', selic:11.25, realizada:false },
-  { data:'2027-07-28', selic:11.00, realizada:false },
-  { data:'2027-09-15', selic:11.00, realizada:false },
-  { data:'2027-11-03', selic:11.00, realizada:false },
+  // Focus 27/04/2026: Selic fim de 2026 = 13,00% → 6 reuniões restantes, corte de 0,25pp cada
+  // 14,75% → 14,50% (29/04) → 14,25% (17/06) → 14,00% (05/08) → 13,75% (16/09) → 13,50% (04/11) → 13,25% (09/12) — pausa em dez ou +0,25 implícita
+  // Trajetória: 14,50 → 14,25 → 14,00 → 13,75 → 13,50 → 13,25 → pausa → 13,00 em fev/27
+  { data:'2026-04-29', selic:14.50, realizada:false },  // corte de 0,25pp (consenso mercado)
+  { data:'2026-06-17', selic:14.25, realizada:false },
+  { data:'2026-08-05', selic:14.00, realizada:false },
+  { data:'2026-09-16', selic:13.75, realizada:false },
+  { data:'2026-11-04', selic:13.50, realizada:false },
+  { data:'2026-12-09', selic:13.25, realizada:false },
+  // 2027 — Focus 27/04: Selic fim de 2027 = 11,00% → 8 reuniões, corte de ~0,25pp cada
+  { data:'2027-02-03', selic:13.00, realizada:false },
+  { data:'2027-03-17', selic:12.75, realizada:false },
+  { data:'2027-05-05', selic:12.50, realizada:false },
+  { data:'2027-06-16', selic:12.25, realizada:false },
+  { data:'2027-07-28', selic:12.00, realizada:false },
+  { data:'2027-09-15', selic:11.50, realizada:false },
+  { data:'2027-11-03', selic:11.25, realizada:false },
   { data:'2027-12-08', selic:11.00, realizada:false },
 ];
 const FOCUS_SELIC_FALLBACK = [
   { ano:2026, mediana:13.00, min:11.25, max:13.50 },
   { ano:2027, mediana:11.00, min:8.50,  max:12.00 },
   { ano:2028, mediana:10.00, min:7.00,  max:11.00 },
+  { ano:2029, mediana:9.88,  min:7.00,  max:11.00 },
 ];
 const FOCUS_IPCA_FALLBACK = [
-  { ano:2026, mediana:4.80, min:3.90, max:5.80, meta:'acima da meta' },
-  { ano:2027, mediana:3.99, min:3.20, max:5.00, meta:'dentro da meta' },
-  { ano:2028, mediana:3.60, min:3.00, max:4.20, meta:'dentro da meta' },
+  { ano:2026, mediana:4.86, min:3.90, max:5.80, meta:'acima da meta' },
+  { ano:2027, mediana:4.00, min:3.20, max:5.00, meta:'acima do centro' },
+  { ano:2028, mediana:3.61, min:3.00, max:4.20, meta:'dentro da meta' },
   { ano:2029, mediana:3.50, min:3.00, max:4.00, meta:'dentro da meta' },
 ];
 
@@ -713,7 +726,7 @@ function inicializarFallbacks() {
   if (!REUNIOES_COPOM.length) REUNIOES_COPOM = COPOM_FALLBACK;
   if (!FOCUS_SELIC.length)    FOCUS_SELIC    = FOCUS_SELIC_FALLBACK;
   if (!FOCUS_IPCA.length)     FOCUS_IPCA     = FOCUS_IPCA_FALLBACK;
-  if (!FOCUS_DATA)            FOCUS_DATA     = '25/04/2026';
+  if (!FOCUS_DATA)            FOCUS_DATA     = '27/04/2026';
 }
 
 // Calcula CDI médio ponderado pelo tempo para um prazo em dias a partir de hoje
@@ -814,7 +827,7 @@ function renderFocus() {
       <div class="fan-val ipca">${f.mediana.toFixed(2).replace('.',',')}%</div>
       <div class="fan-range" style="color:var(--amber)">${f.min.toFixed(2).replace('.',',')}% — ${f.max.toFixed(2).replace('.',',')}%</div>
       <div class="fan-range">mín — máx</div>
-      <span class="fan-meta ${f.meta.includes('acima')?'warn':'ok'}">${f.meta}</span>
+      <span class="fan-meta ${f.meta==='acima da meta'?'warn':f.meta==='acima do centro'?'center':'ok'}">${f.meta}</span>
     </div>`).join('');
   document.getElementById('focus-data-ipca').textContent = 'Focus de ' + FOCUS_DATA;
 
