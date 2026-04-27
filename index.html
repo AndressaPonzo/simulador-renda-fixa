@@ -606,9 +606,25 @@ function aplicarDados(d, origem){
   SELIC_META  = d.selicMeta      ?? 14.75;
 
   // Atualiza dados dinâmicos do Focus e Copom
-  if (d.focusSelic    && d.focusSelic.length)    FOCUS_SELIC    = d.focusSelic;
-  if (d.focusIPCA     && d.focusIPCA.length)     FOCUS_IPCA     = d.focusIPCA;
-  if (d.copomCalendario && d.copomCalendario.length) REUNIOES_COPOM = d.copomCalendario;
+  // Só usa os dados do JSON se forem válidos (não vazios e com trajetória real de queda)
+  if (d.focusSelic && d.focusSelic.length) {
+    FOCUS_SELIC = d.focusSelic;
+  } else {
+    FOCUS_SELIC = FOCUS_SELIC_FALLBACK;
+  }
+  if (d.focusIPCA && d.focusIPCA.length) {
+    FOCUS_IPCA = d.focusIPCA;
+  } else {
+    FOCUS_IPCA = FOCUS_IPCA_FALLBACK;
+  }
+  // Copom: verifica se há trajetória real (pelo menos 2 valores distintos de selic)
+  const copomValido = d.copomCalendario && d.copomCalendario.length > 1 &&
+    d.copomCalendario.some(r => r.selic !== d.copomCalendario[0].selic);
+  if (copomValido) {
+    REUNIOES_COPOM = d.copomCalendario;
+  } else {
+    REUNIOES_COPOM = COPOM_FALLBACK;
+  }
   if (d.focusData) FOCUS_DATA = d.focusData;
 
   // Sliders
