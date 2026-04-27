@@ -201,6 +201,32 @@
   footer a { color:var(--blue); text-decoration:none; }
   strong { font-weight:500; }
 
+  /* ── cards Focus ── */
+  .focus-header { display:flex; align-items:baseline; gap:10px; margin-bottom:0.85rem; flex-wrap:wrap; }
+  .focus-header .focus-data { font-size:11px; color:var(--text3); }
+  .focus-anos-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px; margin-bottom:0.6rem; }
+  .focus-ano-card {
+    background:var(--bg); border:0.5px solid var(--border);
+    border-radius:var(--radius); padding:10px 12px; position:relative;
+  }
+  .focus-ano-card .fan-ano { font-size:11px; color:var(--text3); margin-bottom:2px; }
+  .focus-ano-card .fan-val { font-size:20px; font-weight:500; }
+  .focus-ano-card .fan-val.selic { color:var(--blue); }
+  .focus-ano-card .fan-val.ipca  { color:var(--amber); }
+  .focus-ano-card .fan-range { font-size:10px; color:var(--text3); margin-top:3px; }
+  .focus-ano-card .fan-meta { font-size:9px; margin-top:3px; padding:1px 6px; border-radius:20px; display:inline-block; }
+  .focus-ano-card .fan-meta.ok   { background:#C0DD97; color:#173404; }
+  .focus-ano-card .fan-meta.warn { background:#FAC775; color:#412402; }
+  .focus-nota { font-size:11px; color:var(--text3); margin-top:6px; line-height:1.6; }
+  .copom-linha { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
+  .copom-pill {
+    font-size:10px; padding:2px 8px; border-radius:20px;
+    background:var(--bg2); border:0.5px solid var(--border); color:var(--text2);
+  }
+  .copom-pill.passada { opacity:0.4; text-decoration:line-through; }
+  .copom-pill.atual   { background:#B5D4F4; color:#042C53; border-color:#185FA5; font-weight:500; }
+  .copom-pill.futura  { background:var(--bg2); color:var(--text); }
+
   /* ── equivalências card ── */
   .eq-input-row {
     display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:1rem;
@@ -287,6 +313,32 @@
       </div>
     </div>
 
+  </div>
+
+  <!-- PROJEÇÕES FOCUS -->
+  <div class="card" id="card-focus">
+    <div class="focus-header">
+      <p class="section-title" style="margin-bottom:0">projeções selic — boletim focus</p>
+      <span class="focus-data" id="focus-data-selic"></span>
+    </div>
+    <div class="focus-anos-grid" id="focus-selic-grid">
+      <!-- preenchido via JS -->
+    </div>
+    <div class="focus-nota">Mediana das instituições respondentes · Mín e Máx indicam o intervalo das projeções · Fonte: BCB / Focus</div>
+    <div style="margin-top:10px">
+      <p style="font-size:11px;color:var(--text3);margin-bottom:4px">Próximas reuniões Copom consideradas nos cálculos:</p>
+      <div class="copom-linha" id="copom-linha"></div>
+    </div>
+    <div style="margin-top:10px">
+      <div class="focus-header" style="margin-bottom:6px">
+        <p class="section-title" style="margin-bottom:0">projeções ipca — boletim focus</p>
+        <span class="focus-data" id="focus-data-ipca"></span>
+      </div>
+      <div class="focus-anos-grid" id="focus-ipca-grid">
+        <!-- preenchido via JS -->
+      </div>
+      <div class="focus-nota">Meta BCB 2026: 3,0% (banda 1,5%–4,5%) · Fonte: BCB / Focus</div>
+    </div>
   </div>
 
   <!-- PARÂMETROS -->
@@ -510,7 +562,7 @@ function highlightIR(dias){
 // Cache local (localStorage) — fallback se dados.json falhar
 // ─────────────────────────────────────────────
 const CACHE_KEY = 'rfb_dados_v1';
-const DEFAULTS  = { selic:13.25, selicProjetada:11.50, ipca:4.80 };
+const DEFAULTS  = { selic:14.65, selicMeta:14.75, selicProjetada:13.00, ipca:4.80 };
 
 function salvarCache(dados){ try{ localStorage.setItem(CACHE_KEY, JSON.stringify(dados)); }catch(e){} }
 function lerCache(){ try{ const s=localStorage.getItem(CACHE_KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
@@ -541,15 +593,23 @@ async function carregarDados(){
       aplicarDados(cache, 'cached');
       return;
     }
-    // Fallback final: valores padrão
+    // Fallback final: valores padrão + dados hardcoded
+    inicializarFallbacks();
     aplicarDados(DEFAULTS, 'default');
   }
 }
 
 function aplicarDados(d, origem){
-  const selic = d.selic          ?? DEFAULTS.selic;
-  const proj  = d.selicProjetada ?? DEFAULTS.selicProjetada;
-  const ipca  = d.ipca           ?? DEFAULTS.ipca;
+  const selic = d.selic          ?? 14.65;
+  const proj  = d.selicProjetada ?? 13.00;
+  const ipca  = d.ipca           ?? 4.80;
+  SELIC_META  = d.selicMeta      ?? 14.75;
+
+  // Atualiza dados dinâmicos do Focus e Copom
+  if (d.focusSelic    && d.focusSelic.length)    FOCUS_SELIC    = d.focusSelic;
+  if (d.focusIPCA     && d.focusIPCA.length)     FOCUS_IPCA     = d.focusIPCA;
+  if (d.copomCalendario && d.copomCalendario.length) REUNIOES_COPOM = d.copomCalendario;
+  if (d.focusData) FOCUS_DATA = d.focusData;
 
   // Sliders
   document.getElementById('selic').value      = selic;
@@ -561,7 +621,7 @@ function aplicarDados(d, origem){
   document.getElementById('lv-proj').textContent  = fmtPct(proj);
   document.getElementById('lv-ipca').textContent  = fmtPct(ipca);
 
-  // Bolinhas: verde claro = fresh | verde escuro = cached/default
+  // Bolinhas
   const dotClass = origem==='fresh' ? 'lc-dot ok' : 'lc-dot warn';
   ['tag-selic','tag-proj','tag-ipca'].forEach(id => {
     document.getElementById(id).className = dotClass;
@@ -573,10 +633,11 @@ function aplicarDados(d, origem){
   document.getElementById('atag-ipca').textContent  = aTagTxt;
   document.getElementById('atag-proj').textContent  = origem==='fresh' ? '✓ Focus' : aTagTxt;
 
-  // Última atualização no título do card
+  // Última atualização
   document.getElementById('ultima-att').textContent =
     d.atualizadoEm ? 'última atualização: '+d.atualizadoEm : 'atualizadas automaticamente';
 
+  renderFocus();
   render();
 }
 
@@ -590,6 +651,147 @@ function calcRet(principal, taxa, anos, ir, isento){
   const final = principal+liq;
   const rentAno = Math.pow(1+liq/principal,1/anos)-1;
   return {bruto,imp,liq,final,rentAno};
+}
+
+// ─────────────────────────────────────────────
+// Dados dinâmicos — carregados do dados.json
+// ─────────────────────────────────────────────
+let REUNIOES_COPOM = [];
+let FOCUS_SELIC    = [];
+let FOCUS_IPCA     = [];
+let FOCUS_DATA     = '';
+let SELIC_META     = 14.75;  // fallbacks até dados.json carregar
+
+// Fallbacks hardcoded usados enquanto dados.json não chega
+const COPOM_FALLBACK = [
+  // 2026 — datas oficiais BCB (segundo dia de cada reunião = data de decisão)
+  { data:'2026-04-29', selic:14.75, realizada:false },  // 28 e 29 de abril
+  { data:'2026-06-17', selic:14.25, realizada:false },  // 16 e 17 de junho
+  { data:'2026-08-05', selic:13.75, realizada:false },  // 04 e 05 de agosto
+  { data:'2026-09-16', selic:13.50, realizada:false },  // 15 e 16 de setembro
+  { data:'2026-11-04', selic:13.25, realizada:false },  // 03 e 04 de novembro
+  { data:'2026-12-09', selic:13.00, realizada:false },  // 08 e 09 de dezembro
+  // 2027 — datas provisórias (BCB ainda não publicou calendário oficial)
+  { data:'2027-02-03', selic:12.50, realizada:false },
+  { data:'2027-03-17', selic:12.00, realizada:false },
+  { data:'2027-05-05', selic:11.50, realizada:false },
+  { data:'2027-06-16', selic:11.25, realizada:false },
+  { data:'2027-07-28', selic:11.00, realizada:false },
+  { data:'2027-09-15', selic:11.00, realizada:false },
+  { data:'2027-11-03', selic:11.00, realizada:false },
+  { data:'2027-12-08', selic:11.00, realizada:false },
+];
+const FOCUS_SELIC_FALLBACK = [
+  { ano:2026, mediana:13.00, min:11.25, max:13.50 },
+  { ano:2027, mediana:11.00, min:8.50,  max:12.00 },
+  { ano:2028, mediana:10.00, min:7.00,  max:11.00 },
+];
+const FOCUS_IPCA_FALLBACK = [
+  { ano:2026, mediana:4.80, min:3.90, max:5.80, meta:'acima da meta' },
+  { ano:2027, mediana:3.99, min:3.20, max:5.00, meta:'dentro da meta' },
+  { ano:2028, mediana:3.60, min:3.00, max:4.20, meta:'dentro da meta' },
+  { ano:2029, mediana:3.50, min:3.00, max:4.00, meta:'dentro da meta' },
+];
+
+function inicializarFallbacks() {
+  if (!REUNIOES_COPOM.length) REUNIOES_COPOM = COPOM_FALLBACK;
+  if (!FOCUS_SELIC.length)    FOCUS_SELIC    = FOCUS_SELIC_FALLBACK;
+  if (!FOCUS_IPCA.length)     FOCUS_IPCA     = FOCUS_IPCA_FALLBACK;
+}
+
+// Calcula CDI médio ponderado pelo tempo para um prazo em dias a partir de hoje
+// Usa a trajetória real das reuniões Copom
+function calcCDIPonderado(diasTotal) {
+  const hoje = new Date();
+  const fim  = new Date(hoje); fim.setDate(fim.getDate() + diasTotal);
+
+  let somaSelicDias = 0;
+  let diasContados  = 0;
+
+  for (let i = 0; i < REUNIOES_COPOM.length; i++) {
+    const inicioVigencia = i === 0
+      ? hoje
+      : new Date(Math.max(hoje, new Date(REUNIOES_COPOM[i].data)));
+    const fimVigencia = i < REUNIOES_COPOM.length - 1
+      ? new Date(Math.min(fim, new Date(REUNIOES_COPOM[i+1].data)))
+      : fim;
+
+    if (inicioVigencia >= fim) break;
+    if (fimVigencia <= hoje) continue;
+
+    const dias = Math.max(0, (fimVigencia - inicioVigencia) / 86400000);
+    somaSelicDias += REUNIOES_COPOM[i].selic * dias;
+    diasContados  += dias;
+  }
+
+  if (diasContados <= 0) return REUNIOES_COPOM[0].selic * 0.999 / 100;
+  const selicMedia = somaSelicDias / diasContados;
+  return (selicMedia * 0.999) / 100; // CDI ≈ Selic × 0,999
+}
+
+// Calcula IPCA médio ponderado pelo tempo para o prazo
+function calcIPCAPonderado(diasTotal) {
+  const hoje = new Date();
+  const anoAtual = hoje.getFullYear();
+  const diaDoAno = Math.floor((hoje - new Date(anoAtual, 0, 1)) / 86400000);
+  const diasRestantesAno = 365 - diaDoAno;
+
+  let somaIpcaDias = 0;
+  let diasContados = 0;
+  let diasAcum = 0;
+
+  for (const p of FOCUS_IPCA) {
+    const diasNoAno = p.ano === anoAtual ? diasRestantesAno : 365;
+    const inicio = diasAcum;
+    const fimP   = diasAcum + diasNoAno;
+    const sobreposicao = Math.max(0, Math.min(fimP, diasTotal) - Math.max(0, inicio));
+    somaIpcaDias += p.mediana * sobreposicao;
+    diasContados += sobreposicao;
+    diasAcum = fimP;
+    if (diasAcum >= diasTotal) break;
+  }
+
+  if (diasContados <= 0) return FOCUS_IPCA[0].mediana / 100;
+  return somaIpcaDias / diasContados / 100;
+}
+
+// Renderiza o card Focus
+function renderFocus() {
+  // Selic
+  const sgSelic = document.getElementById('focus-selic-grid');
+  sgSelic.innerHTML = FOCUS_SELIC.map(f => `
+    <div class="focus-ano-card">
+      <div class="fan-ano">${f.ano}</div>
+      <div class="fan-val selic">${f.mediana.toFixed(2).replace('.',',')}%</div>
+      <div class="fan-range" style="color:#185FA5">${f.min.toFixed(2).replace('.',',')}% — ${f.max.toFixed(2).replace('.',',')}%</div>
+      <div class="fan-range">mín — máx</div>
+    </div>`).join('');
+  document.getElementById('focus-data-selic').textContent = 'Focus de ' + FOCUS_DATA;
+
+  // IPCA
+  const sgIpca = document.getElementById('focus-ipca-grid');
+  sgIpca.innerHTML = FOCUS_IPCA.map(f => `
+    <div class="focus-ano-card">
+      <div class="fan-ano">${f.ano}</div>
+      <div class="fan-val ipca">${f.mediana.toFixed(2).replace('.',',')}%</div>
+      <div class="fan-range" style="color:var(--amber)">${f.min.toFixed(2).replace('.',',')}% — ${f.max.toFixed(2).replace('.',',')}%</div>
+      <div class="fan-range">mín — máx</div>
+      <span class="fan-meta ${f.meta.includes('acima')?'warn':'ok'}">${f.meta}</span>
+    </div>`).join('');
+  document.getElementById('focus-data-ipca').textContent = 'Focus de ' + FOCUS_DATA;
+
+  // Pills do Copom
+  const hoje = new Date();
+  const linha = document.getElementById('copom-linha');
+  const proximas = REUNIOES_COPOM.filter(r => new Date(r.data) >= new Date('2026-01-01'));
+  linha.innerHTML = proximas.map(r => {
+    const dR = new Date(r.data);
+    const passada = dR < hoje;
+    const proxima = !passada && proximas.find(x => new Date(x.data) >= hoje)?.data === r.data;
+    const cls = passada ? 'passada' : proxima ? 'atual' : 'futura';
+    const dd = dR.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+    return `<span class="copom-pill ${cls}">${dd} → ${r.selic.toFixed(2).replace('.',',')}%</span>`;
+  }).join('');
 }
 
 // ─────────────────────────────────────────────
@@ -618,7 +820,11 @@ function render(){
   document.getElementById('taxa-pre-out').textContent   = fmtPct(PRE*100);
   document.getElementById('spread-ipca-out').textContent= fmtPct(SIPCA*100);
 
-  const CDI = ((SEL+SPROJ)/2)*0.999;
+  // CDI e IPCA ponderados pela trajetória real do Copom / Focus
+  const CDI  = calcCDIPonderado(DIAS);
+  const IPCA_POND = calcIPCAPonderado(DIAS);
+  // Para o cálculo IPCA+ usamos o IPCA ponderado (não o slider)
+  // O slider de IPCA serve apenas como referência visual / override manual
   const IR  = getIR(DIAS);
   const irPct = IR===.225?'22,5%':IR===.20?'20%':IR===.175?'17,5%':'15%';
 
@@ -627,7 +833,7 @@ function render(){
     {nome:`CDB Pré-fixado ${fmtPct(PRE*100)}`,                      taxa:PRE,      ir:IR, iso:false, tipo:'pre'},
     {nome:`LCI ${(pLCI*100).toFixed(1).replace('.',',')}% CDI (isento)`, taxa:CDI*pLCI,       ir:0, iso:true, tipo:'lci'},
     {nome:`LCA ${((pLCI-.01)*100).toFixed(1).replace('.',',')}% CDI (isento)`,taxa:CDI*(pLCI-.01),ir:0,iso:true,tipo:'lca'},
-    {nome:`IPCA+ ${fmtPct(SIPCA*100)}`,                             taxa:IPCA+SIPCA,ir:IR,iso:false,tipo:'ipca'},
+    {nome:`IPCA+ ${fmtPct(SIPCA*100)}`,                             taxa:IPCA_POND+SIPCA,ir:IR,iso:false,tipo:'ipca'},
     {nome:'Tesouro Selic',                                           taxa:CDI*1.001, ir:IR,iso:false,tipo:'tsel'},
   ];
 
@@ -651,7 +857,7 @@ function render(){
   document.getElementById('m-liq').textContent   = fmtPct(best.rentAno*100)+' a.a.';
   document.getElementById('m-ganho').textContent  = 'R$ '+fmt(best.liq);
   document.getElementById('m-final').textContent  = 'R$ '+fmt(best.final);
-  document.getElementById('m-real').textContent   = fmtPct(((1+best.rentAno)/(1+IPCA)-1)*100)+' a.a.';
+  document.getElementById('m-real').textContent   = fmtPct(((1+best.rentAno)/(1+IPCA_POND)-1)*100)+' a.a.';
 
   // IR highlight
   highlightIR(DIAS);
@@ -692,8 +898,8 @@ function render(){
     </div>
   `;
 
-  renderChart(P, DIAS, ANOS, CDI, pCDB, pLCI, PRE, SIPCA, IPCA, IR, scenario);
-  renderEquivalencias(CDI, pCDB, pLCI, PRE, SIPCA, IPCA);
+  renderChart(P, DIAS, ANOS, CDI, pCDB, pLCI, PRE, SIPCA, IPCA_POND, IR, scenario);
+  renderEquivalencias(CDI, pCDB, pLCI, PRE, SIPCA, IPCA_POND);
 }
 // ─────────────────────────────────────────────
 // Equivalências
@@ -899,13 +1105,14 @@ function atualizarPrazoVenc(){
 // Init
 // ─────────────────────────────────────────────
 document.querySelectorAll('input,select').forEach(el=>el.addEventListener('input',render));
-// eq-produto chama atualizarLabelEqTaxa que já dispara render() internamente
 document.getElementById('eq-produto').addEventListener('change', atualizarLabelEqTaxa);
 document.getElementById('eq-taxa').addEventListener('input', render);
 document.getElementById('prazo').addEventListener('change', atualizarPrazoVenc);
+inicializarFallbacks();  // garante dados antes do primeiro render
 render();
 atualizarPrazoVenc();
-carregarDados();
+renderFocus();
+carregarDados();  // sobrescreve com dados reais do BCB quando chegar
 </script>
 </body>
 </html>
