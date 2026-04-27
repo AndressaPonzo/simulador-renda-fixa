@@ -950,7 +950,7 @@ function render(){
   `;
 
   renderChart(P, DIAS, ANOS, CDI, pCDB, pLCI, PRE, SIPCA, IPCA_POND, IR, scenario);
-  renderEquivalencias(CDI, pCDB, pLCI, PRE, SIPCA, IPCA_POND);
+  renderEquivalencias(pCDB, pLCI, PRE, SIPCA);
 }
 // ─────────────────────────────────────────────
 // Equivalências
@@ -969,17 +969,16 @@ function atualizarLabelEqTaxa(){
   render();
 }
 
-function renderEquivalencias(CDI, pCDB, pLCI, PRE, SIPCA, IPCA){
+function renderEquivalencias(pCDB, pLCI, PRE, SIPCA){
   const prod   = document.getElementById('eq-produto').value;
   const taxaIn = parseFloat(document.getElementById('eq-taxa').value)||0;
 
-  // Converte input → taxa bruta decimal a.a.
-  // CDB Pós / LCI/LCA : % do CDI  → bruta = (taxaIn/100) * CDI
-  // CDB Pré           : % a.a.    → bruta = taxaIn/100
-  // IPCA+             : spread    → bruta = IPCA + (taxaIn/100)
+  // Converte input → taxa bruta decimal a.a. usando CDI da faixa de 361 dias como referência
+  // (será recalculado por faixa abaixo)
+  const CDI_REF = calcCDIPonderado(361);
   let taxaRef;
-  if(prod === 'pos' || prod === 'lci') taxaRef = (taxaIn / 100) * CDI;
-  else if(prod === 'ipca')             taxaRef = IPCA + (taxaIn / 100);
+  if(prod === 'pos' || prod === 'lci') taxaRef = (taxaIn / 100) * CDI_REF;
+  else if(prod === 'ipca')             taxaRef = calcIPCAPonderado(361) + (taxaIn / 100);
   else                                 taxaRef = taxaIn / 100;
 
   const hoje = new Date();
@@ -1012,19 +1011,28 @@ function renderEquivalencias(CDI, pCDB, pLCI, PRE, SIPCA, IPCA){
 
   const grid = document.getElementById('eq-faixa-grid');
   grid.innerHTML = faixas.map(f => {
+    // CDI e IPCA calculados com os dias fixos da própria faixa — independente do slider de prazo
+    const CDI_F  = calcCDIPonderado(f.dias);
+    const IPCA_F = calcIPCAPonderado(f.dias);
+
+    // Recalcula taxaRef com CDI/IPCA da faixa quando o produto de referência depende deles
+    let taxaRefFaixa = taxaRef;
+    if(prod === 'pos' || prod === 'lci') taxaRefFaixa = (taxaIn / 100) * CDI_F;
+    else if(prod === 'ipca')             taxaRefFaixa = IPCA_F + (taxaIn / 100);
+
     const isIsentoRef = prod === 'lci';
-    const liqAlvo   = liqRefAnual(taxaRef, f.dias, f.irRate, isIsentoRef);
+    const liqAlvo   = liqRefAnual(taxaRefFaixa, f.dias, f.irRate, isIsentoRef);
 
     const brutaPre  = brutaEquiv(liqAlvo, f.dias, f.irRate, false);
     const brutaPos  = brutaEquiv(liqAlvo, f.dias, f.irRate, false);
     const brutaLci  = brutaEquiv(liqAlvo, f.dias, f.irRate, true);
     const brutaIpca = brutaEquiv(liqAlvo, f.dias, f.irRate, false);
 
-    // CDB Pós / LCI/LCA → % do CDI
-    const pctCDIPos  = CDI > 0 ? (brutaPos / CDI) * 100 : 0;
-    const pctCDILci  = CDI > 0 ? (brutaLci / CDI) * 100 : 0;
-    // IPCA+ → usa IPCA da calculadora + spread equivalente
-    const spreadIpca = brutaIpca - IPCA;
+    // CDB Pós / LCI/LCA → % do CDI da faixa
+    const pctCDIPos  = CDI_F > 0 ? (brutaPos / CDI_F) * 100 : 0;
+    const pctCDILci  = CDI_F > 0 ? (brutaLci / CDI_F) * 100 : 0;
+    // IPCA+ → spread sobre o IPCA ponderado da faixa
+    const spreadIpca = brutaIpca - IPCA_F;
 
     const produtos = [
       {
@@ -1044,9 +1052,8 @@ function renderEquivalencias(CDI, pCDB, pLCI, PRE, SIPCA, IPCA){
       },
       {
         tipo: 'ipca', nome: 'IPCA+', isIsento: false, bruta: brutaIpca,
-        // exibe spread sobre o IPCA atual da calculadora
         brutaDisplay: 'IPCA + ' + fmtPct(spreadIpca * 100),
-        brutaSub: 'IPCA ' + fmtPct(IPCA * 100) + ' + ' + fmtPct(spreadIpca * 100) + ' = ' + fmtPct(brutaIpca * 100) + ' a.a.'
+        brutaSub: 'IPCA ' + fmtPct(IPCA_F * 100) + ' + ' + fmtPct(spreadIpca * 100) + ' = ' + fmtPct(brutaIpca * 100) + ' a.a.'
       },
     ];
 
