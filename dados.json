@@ -78,7 +78,9 @@
       "realizada": false
     }
   ],
-  "atualizadoEm": "29/04/2026 às 07:57h (horário de Brasília)",
-  "atualizadoEmISO": "2026-04-29T10:57:03Z",
-  "erros": []
+  "atualizadoEm": "29/04/2026 às 18:53h (horário de Brasília)",
+  "atualizadoEmISO": "2026-04-29T21:53:50Z",
+  "erros": [
+    "ipca: list index out of range"
+  ]
 }
