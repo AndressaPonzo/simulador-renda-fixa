@@ -423,10 +423,39 @@ function atualizarLive() {
 }
 
 // ──────────────────────────────────────────────
-// Cache de séries históricas do BCB
+// Feriados B3 — somente os que o CDI NÃO acumula
+// (fins de semana + estes feriados nacionais)
+// Quinta Santa, Corpus Christi e municipais NÃO entram
 // ──────────────────────────────────────────────
-// CDI_HIST: { 'YYYY-MM-DD': fatorDiario }  (ex: 1.000523)
-// IPCA_HIST: { 'YYYY-MM': variacaoDecimal } (ex: 0.0044)
+const FERIADOS_B3 = new Set([
+  '2024-01-01','2024-02-12','2024-02-13','2024-03-29',
+  '2024-05-01','2024-11-02','2024-11-15','2024-11-20','2024-12-25',
+  '2025-01-01','2025-03-03','2025-03-04','2025-04-18',
+  '2025-05-01','2025-11-02','2025-11-15','2025-11-20','2025-12-25',
+  '2026-01-01','2026-02-16','2026-02-17','2026-04-03',
+  '2026-05-01','2026-11-02','2026-11-15','2026-11-20','2026-12-25',
+  '2027-01-01','2027-02-15','2027-02-16','2027-03-26',
+  '2027-05-01','2027-11-02','2027-11-15','2027-11-20','2027-12-25',
+]);
+
+function ehDiaUtil(iso) {
+  const dow = new Date(iso + 'T12:00:00').getDay();
+  return dow !== 0 && dow !== 6 && !FERIADOS_B3.has(iso);
+}
+
+function proximoDiaUtil(iso) {
+  const d = new Date(iso + 'T12:00:00');
+  d.setDate(d.getDate() + 1);
+  while (!ehDiaUtil(d.toISOString().slice(0,10)))
+    d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0,10);
+}
+
+// ──────────────────────────────────────────────
+// Cache de séries históricas do BCB
+// CDI_HIST: { 'YYYY-MM-DD': fatorDiario }
+// IPCA_HIST: { 'YYYY-MM': variacaoDecimal }
+// ──────────────────────────────────────────────
 const CDI_HIST  = {};
 const IPCA_HIST = {};
 let   historicoCarregado = false;
@@ -434,243 +463,206 @@ let   historicoCarregado = false;
 function fmtBCB(d){ return d.toISOString().slice(0,10).split('-').reverse().join('/'); }
 
 async function carregarHistorico(dataMinISO) {
-  // dataMin no formato dd/MM/yyyy para a API
   const dataMin = dataMinISO.split('-').reverse().join('/');
   const hoje    = fmtBCB(new Date());
-
   try {
-    // CDI diário — SGS 12 (fator diário acumulado, base 252 d.u.)
-    // Usamos SGS 4391 = CDI over (taxa % a.d.) que é o mais direto
     const [rCDI, rIPCA] = await Promise.all([
       fetch(`https://api.bcb.gov.br/dados/serie/bcdata.sgs.4391/dados?formato=json&dataInicial=${dataMin}&dataFinal=${hoje}`)
         .then(r => r.ok ? r.json() : []),
       fetch(`https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados?formato=json&dataInicial=${dataMin}&dataFinal=${hoje}`)
         .then(r => r.ok ? r.json() : []),
     ]);
-
-    // CDI: cada item = { data:'dd/MM/yyyy', valor:'0.052300' } (taxa % a.d.)
     for (const item of rCDI) {
       const [d,m,y] = item.data.split('/');
-      const iso = `${y}-${m}-${d}`;
-      const taxaAD = parseFloat(item.valor.replace(',','.')) / 100; // ex: 0.000523
-      CDI_HIST[iso] = 1 + taxaAD; // fator diário
+      CDI_HIST[`${y}-${m}-${d}`] = 1 + parseFloat(item.valor.replace(',','.')) / 100;
     }
-
-    // IPCA: cada item = { data:'dd/MM/yyyy', valor:'0.44' } (variação % mensal)
     for (const item of rIPCA) {
-      const [d,m,y] = item.data.split('/');
-      const mesISO = `${y}-${m}`; // 'YYYY-MM'
-      IPCA_HIST[mesISO] = parseFloat(item.valor.replace(',','.')) / 100;
+      const [,m,y] = item.data.split('/');
+      IPCA_HIST[`${y}-${m}`] = parseFloat(item.valor.replace(',','.')) / 100;
     }
-
-    historicoCarregado = true;
+    historicoCarregado = Object.keys(CDI_HIST).length > 0;
+    console.log(`CDI: ${Object.keys(CDI_HIST).length} dias | IPCA: ${Object.keys(IPCA_HIST).length} meses`);
   } catch(e) {
     console.warn('Histórico BCB indisponível:', e);
   }
 }
 
 // ──────────────────────────────────────────────
-// Cálculo com dados reais (passado) + projeção (futuro)
+// Selic vigente numa data (última decisão Copom antes dela)
 // ──────────────────────────────────────────────
+function selicEm(iso) {
+  let s = SELIC_META;
+  const ref = new Date(iso + 'T12:00:00');
+  for (const r of REUNIOES_COPOM) {
+    if (new Date(r.data + 'T12:00:00') <= ref) s = r.selic;
+  }
+  return s;
+}
 
-// CDI acumulado passado: produto dos fatores diários reais com % CDI correto
-// Para cada dia útil: fator = (1 + CDI_dia)^pct  — composição diária
-function cdiRealAcumuladoPct(dataInicioISO, pct) {
-  const hoje  = new Date(); hoje.setHours(0,0,0,0);
-  const inicio = new Date(dataInicioISO + 'T12:00:00');
-  let fator = 1;
-  const cur = new Date(inicio);
-  cur.setDate(cur.getDate() + 1); // rende a partir do dia seguinte
+// ──────────────────────────────────────────────
+// CDI % pct — composição diária correta (método corretora)
+// Passado real: usa CDI_HIST (BCB) dia a dia
+// Fallback: estima com Selic * 0,999 / 252 d.u.
+// Fórmula: produto de (1 + CDI_dia)^pct para cada dia útil
+// ──────────────────────────────────────────────
+function calcCDIpct(dataInicioISO, pct) {
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  let cur    = new Date(proximoDiaUtil(dataInicioISO) + 'T12:00:00');
+  let fator  = 1;
   while (cur < hoje) {
     const iso = cur.toISOString().slice(0,10);
-    if (CDI_HIST[iso]) {
-      // CDI_HIST[iso] = 1 + taxa_diaria
-      // Aplica o percentual: (1 + taxa_dia)^pct
-      fator *= Math.pow(CDI_HIST[iso], pct);
+    if (ehDiaUtil(iso)) {
+      const fd = CDI_HIST[iso]
+        ? CDI_HIST[iso]
+        : Math.pow(1 + selicEm(iso) * 0.999 / 100, 1/252);
+      fator *= Math.pow(fd, pct);
     }
     cur.setDate(cur.getDate() + 1);
   }
   return fator - 1;
 }
 
-// CDI acumulado passado sem % (para Selic+): produto simples dos fatores
-function cdiRealAcumulado(dataInicioISO) {
-  const hoje  = new Date(); hoje.setHours(0,0,0,0);
-  const inicio = new Date(dataInicioISO + 'T12:00:00');
-  let fator = 1;
-  const cur = new Date(inicio);
-  cur.setDate(cur.getDate() + 1);
+// CDI simples (sem %) — para Selic+ spread
+function calcCDIsimples(dataInicioISO) {
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  let cur    = new Date(proximoDiaUtil(dataInicioISO) + 'T12:00:00');
+  let fator  = 1;
   while (cur < hoje) {
     const iso = cur.toISOString().slice(0,10);
-    if (CDI_HIST[iso]) fator *= CDI_HIST[iso];
+    if (ehDiaUtil(iso)) {
+      fator *= CDI_HIST[iso]
+        ? CDI_HIST[iso]
+        : Math.pow(1 + selicEm(iso) * 0.999 / 100, 1/252);
+    }
     cur.setDate(cur.getDate() + 1);
   }
   return fator - 1;
 }
 
-// IPCA acumulado passado: produto das variações mensais reais
-function ipcaRealAcumulado(dataInicioISO) {
-  const hoje   = new Date(); hoje.setHours(0,0,0,0);
+// IPCA acumulado real (mensal BCB) + fallback Focus para meses sem dado
+function calcIPCAreal(dataInicioISO) {
+  const hoje  = new Date(); hoje.setHours(0,0,0,0);
   const inicio = new Date(dataInicioISO + 'T12:00:00');
   let fator = 1;
-
-  // Percorre mês a mês
-  let y = inicio.getFullYear(), m = inicio.getMonth() + 1; // 1-based
-  const anoHoje = hoje.getFullYear(), mesHoje = hoje.getMonth() + 1;
-
-  while (y < anoHoje || (y === anoHoje && m < mesHoje)) {
+  let y = inicio.getFullYear(), m = inicio.getMonth() + 1;
+  const yH = hoje.getFullYear(), mH = hoje.getMonth() + 1;
+  while (y < yH || (y === yH && m < mH)) {
     const mesISO = `${y}-${String(m).padStart(2,'0')}`;
-    const var_ = IPCA_HIST[mesISO];
-    if (var_ !== undefined) fator *= (1 + var_);
-    m++; if (m > 12){ m = 1; y++; }
+    if (IPCA_HIST[mesISO] !== undefined) {
+      fator *= (1 + IPCA_HIST[mesISO]);
+    } else {
+      const fp = FOCUS_IPCA.find(p => p.ano === y);
+      if (fp) fator *= Math.pow(1 + fp.mediana/100, 1/12);
+    }
+    m++; if (m > 12){ m=1; y++; }
   }
   return fator - 1;
 }
 
-// CDI futuro projetado: ponderado pela trajetória Copom (compõe com período passado)
+// CDI futuro projetado (hoje → N dias corridos) via Copom ponderado
 function cdiFuturoAcum(diasFuturos) {
   if (diasFuturos <= 0) return 0;
   const hoje = new Date(); hoje.setHours(0,0,0,0);
   const fim  = new Date(hoje); fim.setDate(fim.getDate() + diasFuturos);
-
-  let selicHoje = SELIC_META;
-  for (const r of REUNIOES_COPOM) {
-    const dr = new Date(r.data + 'T12:00:00');
-    if (dr <= hoje) selicHoje = r.selic;
-  }
-
+  let selicVig = selicEm(hoje.toISOString().slice(0,10));
   const futuras = REUNIOES_COPOM
-    .filter(r => new Date(r.data + 'T12:00:00') > hoje)
+    .filter(r => new Date(r.data+'T12:00:00') > hoje)
     .sort((a,b) => a.data.localeCompare(b.data));
-
-  let soma = 0, diasOk = 0;
-  let segIni = hoje, selicVig = selicHoje;
-
+  let soma=0, diasOk=0, segIni=hoje;
   for (const r of futuras) {
-    const dr = new Date(r.data + 'T12:00:00');
+    const dr = new Date(r.data+'T12:00:00');
     if (dr >= fim) break;
-    const dias = Math.max(0, (dr - segIni) / 86400000);
-    soma += selicVig * dias; diasOk += dias;
-    segIni = dr; selicVig = r.selic;
+    const dias = (dr-segIni)/86400000;
+    soma+=selicVig*dias; diasOk+=dias; segIni=dr; selicVig=r.selic;
   }
-  const diasFim = Math.max(0, (fim - segIni) / 86400000);
-  soma += selicVig * diasFim; diasOk += diasFim;
-
-  if (diasOk <= 0) return 0;
-  const cdiAnual = (soma / diasOk) * 0.999 / 100;
-  return Math.pow(1 + cdiAnual, diasFuturos / 365) - 1;
+  const df=(fim-segIni)/86400000;
+  soma+=selicVig*df; diasOk+=df;
+  if (diasOk<=0) return 0;
+  return Math.pow(1+(soma/diasOk)*0.999/100, diasFuturos/365)-1;
 }
 
-// IPCA futuro projetado: Focus por ano
+// IPCA futuro projetado via Focus
 function ipcaFuturoAcum(diasFuturos) {
-  if (diasFuturos <= 0) return 0;
-  const hoje = new Date(); hoje.setHours(0,0,0,0);
-  const anoAtual = hoje.getFullYear();
-  const diaDoAno = Math.floor((hoje - new Date(anoAtual, 0, 1)) / 86400000);
-  const diasRestantesAno = 365 - diaDoAno;
-
-  let soma = 0, diasOk = 0, diasAcum = 0;
+  if (diasFuturos<=0) return 0;
+  const hoje=new Date(); hoje.setHours(0,0,0,0);
+  const anoAtual=hoje.getFullYear();
+  const diaDoAno=Math.floor((hoje-new Date(anoAtual,0,1))/86400000);
+  const diasRestAno=365-diaDoAno;
+  let soma=0,diasOk=0,diasAcum=0;
   for (const p of FOCUS_IPCA) {
-    const diasNoAno = p.ano === anoAtual ? diasRestantesAno : 365;
-    const sob = Math.max(0, Math.min(diasAcum + diasNoAno, diasFuturos) - diasAcum);
-    soma += p.mediana * sob; diasOk += sob; diasAcum += diasNoAno;
-    if (diasAcum >= diasFuturos) break;
+    const dN=p.ano===anoAtual?diasRestAno:365;
+    const sob=Math.max(0,Math.min(diasAcum+dN,diasFuturos)-diasAcum);
+    soma+=p.mediana*sob; diasOk+=sob; diasAcum+=dN;
+    if(diasAcum>=diasFuturos) break;
   }
-  if (diasOk <= 0) return FOCUS_IPCA[0].mediana / 100;
-  const ipcaAnual = soma / diasOk / 100;
-  return Math.pow(1 + ipcaAnual, diasFuturos / 365) - 1;
+  if(diasOk<=0) return FOCUS_IPCA[0].mediana/100;
+  return Math.pow(1+soma/diasOk/100, diasFuturos/365)-1;
 }
 
-// ── Cálculo principal de cada aporte ──────────
-// Valor hoje  = passado real (CDI/IPCA diário BCB)
-// Valor venc  = passado real × futuro projetado Focus/Copom
+// ── Cálculo principal ─────────────────────────
 function calcAporte(ap) {
-  const hoje  = new Date(); hoje.setHours(0,0,0,0);
-  const inicio = new Date(ap.compra + 'T12:00:00');
-  const venc   = new Date(ap.venc   + 'T12:00:00');
-  const diasDec  = Math.max(0, Math.round((hoje - inicio) / 86400000));
-  const diasTot  = Math.max(1, Math.round((venc  - inicio) / 86400000));
-  const diasFut  = Math.max(0, Math.round((venc  - hoje)   / 86400000));
+  const hoje   = new Date(); hoje.setHours(0,0,0,0);
+  const inicio = new Date(ap.compra+'T12:00:00');
+  const venc   = new Date(ap.venc  +'T12:00:00');
+  const diasDec = Math.max(0, Math.round((hoje -inicio)/86400000));
+  const diasTot = Math.max(1, Math.round((venc -inicio)/86400000));
+  const diasFut = Math.max(0, Math.round((venc -hoje  )/86400000));
 
-  if (diasDec <= 0) {
-    return { valorAtual: ap.valor, valorVenc: ap.valor, rendimento: 0, retorno: 0,
-             rendVenc: 0, retornoVenc: 0, diasDec: 0, diasTot };
-  }
+  if (diasDec <= 0)
+    return { valorAtual:ap.valor, valorVenc:ap.valor, rendimento:0, retorno:0,
+             rendVenc:0, retornoVenc:0, diasDec:0, diasTot };
 
-  const isIse = ap.tipo === 'pre_iso';
-  const irHoje = isIse ? 0
-    : diasDec <= 180 ? 0.225 : diasDec <= 360 ? 0.20
-    : diasDec <= 720 ? 0.175 : 0.15;
-  const irVenc = isIse ? 0
-    : diasTot <= 180 ? 0.225 : diasTot <= 360 ? 0.20
-    : diasTot <= 720 ? 0.175 : 0.15;
+  const isIse  = ap.tipo==='pre_iso';
+  const irHoje = isIse?0: diasDec<=180?0.225: diasDec<=360?0.20: diasDec<=720?0.175:0.15;
+  const irVenc = isIse?0: diasTot<=180?0.225: diasTot<=360?0.20: diasTot<=720?0.175:0.15;
 
-  // ── Fator bruto acumulado até HOJE ────────────
-  let fatorHoje;
-  if (ap.tipo === 'pre' || ap.tipo === 'pre_iso') {
-    fatorHoje = Math.pow(1 + ap.taxa / 100, diasDec / 365) - 1;
-
-  } else if (ap.tipo === 'pos') {
-    const temHist = Object.keys(CDI_HIST).length > 0;
-    fatorHoje = temHist
-      ? cdiRealAcumuladoPct(ap.compra, ap.taxa / 100)
-      : Math.pow(1 + (SELIC_META * 0.999 / 100), diasDec / 365) * (ap.taxa / 100) - (ap.taxa / 100);
-
-  } else if (ap.tipo === 'ipca') {
-    const temHist = Object.keys(IPCA_HIST).length > 0;
-    const ipcaReal = temHist
-      ? ipcaRealAcumulado(ap.compra)
-      : Math.pow(1 + FOCUS_IPCA[0].mediana / 100, diasDec / 365) - 1;
-    const spreadAcum = Math.pow(1 + ap.taxa / 100, diasDec / 365) - 1;
-    fatorHoje = (1 + ipcaReal) * (1 + spreadAcum) - 1;
-
-  } else if (ap.tipo === 'selic') {
-    const temHist = Object.keys(CDI_HIST).length > 0;
-    const cdiReal = temHist
-      ? cdiRealAcumulado(ap.compra)
-      : Math.pow(1 + (SELIC_META * 0.999 / 100), diasDec / 365) - 1;
-    const spreadAcum = Math.pow(1 + ap.taxa / 100, diasDec / 365) - 1;
-    fatorHoje = (1 + cdiReal) * (1 + spreadAcum) - 1;
-
+  // ── Passado (compra → hoje) com dados reais ───
+  let fH;
+  if (ap.tipo==='pre'||ap.tipo==='pre_iso') {
+    fH = Math.pow(1+ap.taxa/100, diasDec/365)-1;
+  } else if (ap.tipo==='pos') {
+    fH = calcCDIpct(ap.compra, ap.taxa/100);
+  } else if (ap.tipo==='ipca') {
+    const iR = calcIPCAreal(ap.compra);
+    fH = (1+iR)*(1+Math.pow(1+ap.taxa/100,diasDec/365)-1)-1;
+  } else if (ap.tipo==='selic') {
+    const cR = calcCDIsimples(ap.compra);
+    fH = (1+cR)*(1+Math.pow(1+ap.taxa/100,diasDec/365)-1)-1;
   } else {
-    fatorHoje = Math.pow(1 + ap.taxa / 100, diasDec / 365) - 1;
+    fH = Math.pow(1+ap.taxa/100, diasDec/365)-1;
   }
 
-  // ── Fator bruto futuro (hoje → vencimento) ─────
-  let fatorFut;
-  if (diasFut <= 0) {
-    fatorFut = 0;
-  } else if (ap.tipo === 'pre' || ap.tipo === 'pre_iso') {
-    fatorFut = Math.pow(1 + ap.taxa / 100, diasFut / 365) - 1;
-  } else if (ap.tipo === 'pos') {
-    const cdiFut = cdiFuturoAcum(diasFut);
-    // (1+CDI_futuro)^pct - 1  — composição exponencial
-    fatorFut = Math.pow(1 + cdiFut, ap.taxa / 100) - 1;
-  } else if (ap.tipo === 'ipca') {
-    const ipcaFut = ipcaFuturoAcum(diasFut);
-    const spreadFut = Math.pow(1 + ap.taxa / 100, diasFut / 365) - 1;
-    fatorFut = (1 + ipcaFut) * (1 + spreadFut) - 1;
-  } else if (ap.tipo === 'selic') {
-    const cdiFut = cdiFuturoAcum(diasFut);
-    const spreadFut = Math.pow(1 + ap.taxa / 100, diasFut / 365) - 1;
-    fatorFut = (1 + cdiFut) * (1 + spreadFut) - 1;
-  } else {
-    fatorFut = Math.pow(1 + ap.taxa / 100, diasFut / 365) - 1;
+  // ── Futuro (hoje → vencimento) projetado ──────
+  let fF = 0;
+  if (diasFut > 0) {
+    if (ap.tipo==='pre'||ap.tipo==='pre_iso') {
+      fF = Math.pow(1+ap.taxa/100, diasFut/365)-1;
+    } else if (ap.tipo==='pos') {
+      fF = Math.pow(1+cdiFuturoAcum(diasFut), ap.taxa/100)-1;
+    } else if (ap.tipo==='ipca') {
+      const ipcaFut = ipcaFuturoAcum(diasFut);
+      const spreadFut = Math.pow(1+ap.taxa/100, diasFut/365)-1;
+      fF = (1+ipcaFut)*(1+spreadFut)-1;
+    } else if (ap.tipo==='selic') {
+      const cdiFut = cdiFuturoAcum(diasFut);
+      const spreadFut = Math.pow(1+ap.taxa/100, diasFut/365)-1;
+      fF = (1+cdiFut)*(1+spreadFut)-1;
+    } else {
+      fF = Math.pow(1+ap.taxa/100, diasFut/365)-1;
+    }
   }
 
-  // ── Composição total até vencimento ───────────
-  const fatorVenc = (1 + fatorHoje) * (1 + fatorFut) - 1;
+  const fVenc = (1+fH)*(1+fF)-1;
 
-  // ── Valores líquidos ──────────────────────────
-  const brutoHoje = ap.valor * fatorHoje;
-  const rendimento = brutoHoje * (1 - irHoje);
+  const brutoH     = ap.valor * fH;
+  const rendimento = brutoH * (1-irHoje);
   const valorAtual = ap.valor + rendimento;
-  const retorno    = (rendimento / ap.valor) * 100;
+  const retorno    = (rendimento/ap.valor)*100;
 
-  const brutoVenc  = ap.valor * fatorVenc;
-  const rendVenc   = brutoVenc * (1 - irVenc);
-  const valorVenc  = ap.valor + rendVenc;
-  const retornoVenc = (rendVenc / ap.valor) * 100;
+  const brutoV      = ap.valor * fVenc;
+  const rendVenc    = brutoV * (1-irVenc);
+  const valorVenc   = ap.valor + rendVenc;
+  const retornoVenc = (rendVenc/ap.valor)*100;
 
   return { valorAtual, valorVenc, rendimento, retorno, rendVenc, retornoVenc, diasDec, diasTot };
 }
