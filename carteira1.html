@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Minha Carteira — Renda Fixa Brasil</title>
+<style>
+  :root {
+    --bg:#ffffff; --bg2:#f5f4f1; --bg3:#eceae4;
+    --text:#1a1a18; --text2:#5f5e5a; --text3:#888780;
+    --border:rgba(0,0,0,0.12); --border2:rgba(0,0,0,0.22);
+    --green:#1D9E75; --green-bg:#EAF3DE; --green-text:#173404;
+    --blue:#185FA5; --amber:#BA7517; --red:#c0392b;
+    --radius:8px; --radius-lg:12px;
+  }
+  @media(prefers-color-scheme:dark){
+    :root{
+      --bg:#1e1e1c; --bg2:#282825; --bg3:#323230;
+      --text:#f0ede6; --text2:#b4b2a9; --text3:#888780;
+      --border:rgba(255,255,255,0.12); --border2:rgba(255,255,255,0.22);
+      --green-bg:rgba(23,52,4,0.25); --green-text:#9FE1CB;
+    }
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+    background:var(--bg3); color:var(--text);
+    min-height:100vh; padding-bottom:4rem;
+  }
+
+  /* header */
+  header{
+    background:var(--bg); border-bottom:0.5px solid var(--border);
+    padding:0.75rem 2rem;
+    display:flex; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; gap:0.5rem;
+  }
+  .header-left h1{ font-size:16px; font-weight:500; }
+  .header-left p { font-size:11px; color:var(--text2); margin-top:1px; }
+  .btn-back{
+    font-size:12px; padding:5px 14px; border-radius:20px;
+    border:0.5px solid var(--border2); background:var(--bg);
+    color:var(--text2); cursor:pointer; text-decoration:none;
+    transition:background 0.15s;
+  }
+  .btn-back:hover{ background:var(--bg2); }
+
+  /* layout */
+  .container{ max-width:960px; margin:0 auto; padding:1rem 1.5rem; }
+  .card{
+    background:var(--bg); border:0.5px solid var(--border);
+    border-radius:var(--radius-lg); padding:1rem 1.25rem; margin-bottom:1rem;
+  }
+  .section-title{
+    font-size:11px; font-weight:500; color:var(--text3);
+    text-transform:uppercase; letter-spacing:0.07em; margin-bottom:0.75rem;
+  }
+
+  /* taxas ao vivo */
+  .live-grid{
+    display:grid; grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:8px;
+  }
+  @media(max-width:560px){ .live-grid{ grid-template-columns:repeat(2,1fr); } }
+  .live-card{
+    background:var(--bg2); border-radius:var(--radius); padding:10px 8px;
+    position:relative;
+  }
+  .live-card .lc-lbl{ font-size:10px; color:var(--text3); margin-bottom:4px; line-height:1.3; }
+  .live-card .lc-val{ font-size:18px; font-weight:500; }
+  .live-card .lc-sub{ font-size:10px; color:var(--text3); margin-top:2px; }
+  .live-card .lc-dot{
+    position:absolute; top:7px; right:7px;
+    width:7px; height:7px; border-radius:50%; background:#ccc;
+  }
+  .live-card .lc-dot.ok{ background:#A8D97F; }
+
+  /* formulário */
+  .form-grid{
+    display:grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1.2fr 1fr auto;
+    gap:8px; align-items:end; margin-bottom:1rem;
+  }
+  @media(max-width:760px){ .form-grid{ grid-template-columns:1fr 1fr; } }
+  .fg{ display:flex; flex-direction:column; gap:5px; }
+  .fg label{ font-size:11px; color:var(--text2); }
+  .fg input, .fg select{
+    padding:7px 9px; border:0.5px solid var(--border2);
+    border-radius:var(--radius); background:var(--bg);
+    color:var(--text); font-size:13px; outline:none; width:100%;
+  }
+  .fg input:focus, .fg select:focus{ border-color:var(--blue); }
+  .btn-add{
+    padding:8px 18px; background:var(--blue); color:#fff;
+    border:none; border-radius:var(--radius); font-size:13px;
+    font-weight:500; cursor:pointer; white-space:nowrap; height:35px;
+  }
+  .btn-add:hover{ opacity:0.88; }
+  .taxa-row{ display:flex; gap:6px; align-items:flex-end; }
+  .taxa-row .fg{ flex:1; min-width:0; }
+  .taxa-uni{ font-size:10px; color:var(--text3); padding-bottom:9px; white-space:nowrap; }
+
+  /* estado vazio */
+  .empty-state{
+    text-align:center; color:var(--text3); font-size:13px;
+    padding:2.5rem 1rem; border:1px dashed var(--border);
+    border-radius:var(--radius); margin-top:0.25rem;
+  }
+
+  /* resumo */
+  .resumo-grid{
+    display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:1rem;
+  }
+  @media(max-width:560px){ .resumo-grid{ grid-template-columns:1fr 1fr; } }
+  .resumo-item{
+    background:var(--bg2); border-radius:var(--radius); padding:12px 14px;
+  }
+  .ri-lbl{ font-size:11px; color:var(--text3); margin-bottom:4px; }
+  .ri-val{ font-size:20px; font-weight:500; }
+  .ri-val.pos{ color:var(--green); }
+  .ri-val.neg{ color:var(--red); }
+
+  /* tabela */
+  .table-wrap{ overflow-x:auto; }
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  th{
+    font-size:11px; font-weight:500; color:var(--text2); text-align:left;
+    padding:8px 10px; border-bottom:0.5px solid var(--border);
+    background:var(--bg2); white-space:nowrap;
+  }
+  td{ padding:10px 10px; border-bottom:0.5px solid var(--border); vertical-align:middle; }
+  tr:last-child td{ border-bottom:none; }
+  .td-nome{ font-weight:500; }
+  .td-pos{ color:var(--green); font-weight:500; }
+  .td-neg{ color:var(--red); font-weight:500; }
+  .td-ret{ font-size:12px; }
+  .btn-del{
+    background:none; border:none; cursor:pointer;
+    color:var(--text3); font-size:13px; padding:3px 7px;
+    border-radius:4px;
+  }
+  .btn-del:hover{ color:var(--red); }
+
+  /* tooltip prazo */
+  .prazo-badge{
+    display:inline-block; font-size:10px; padding:1px 6px;
+    border-radius:20px; background:var(--bg3); color:var(--text2);
+    margin-left:4px; white-space:nowrap;
+  }
+
+  /* barra de progresso de prazo */
+  .prog-bar{
+    width:60px; height:5px; background:var(--bg3); border-radius:3px;
+    overflow:hidden; margin-top:3px;
+  }
+  .prog-fill{
+    height:100%; border-radius:3px; background:var(--blue); transition:width 0.3s;
+  }
+  .prog-fill.done{ background:var(--green); }
+
+  footer{
+    text-align:center; font-size:11px; color:var(--text3);
+    padding:2rem 1rem 0;
+  }
+  footer a{ color:var(--blue); text-decoration:none; }
+  strong{ font-weight:500; }
+
+  /* badge de tipo */
+  .tipo-badge{
+    display:inline-block; font-size:10px; padding:2px 7px;
+    border-radius:20px; font-weight:500;
+  }
+  .tb-pre  { background:#B5D4F4; color:#042C53; }
+  .tb-pos  { background:#C0DD97; color:#173404; }
+  .tb-ipca { background:#FAC775; color:#412402; }
+  .tb-selic{ background:#D3D1C7; color:#2C2C2A; }
+  .tb-iso  { background:#d4f0e8; color:#0a3d2a; }
+
+  /* nota */
+  .nota{
+    font-size:11px; color:var(--text3); line-height:1.7; margin-top:0.75rem;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>📂 Minha Carteira</h1>
+    <p>Checagem de rentabilidade dos meus investimentos em renda fixa</p>
+  </div>
+  <a class="btn-back" href="index.html">← Voltar ao simulador</a>
+</header>
+
+<div class="container">
+
+  <!-- TAXAS ATUAIS -->
+  <div class="card">
+    <p class="section-title">taxas de referência usadas nos cálculos</p>
+    <div class="live-grid">
+      <div class="live-card">
+        <span class="lc-dot ok"></span>
+        <div class="lc-lbl">Selic meta</div>
+        <div class="lc-val" id="lv-selic-meta">—</div>
+        <div class="lc-sub">a.a.</div>
+      </div>
+      <div class="live-card">
+        <span class="lc-dot ok"></span>
+        <div class="lc-lbl">CDI (Selic − 0,10pp)</div>
+        <div class="lc-val" id="lv-cdi">—</div>
+        <div class="lc-sub">a.a. referência</div>
+      </div>
+      <div class="live-card">
+        <span class="lc-dot ok"></span>
+        <div class="lc-lbl">IPCA acumulado 12m</div>
+        <div class="lc-val" id="lv-ipca">—</div>
+        <div class="lc-sub">BCB</div>
+      </div>
+      <div class="live-card">
+        <span class="lc-dot ok"></span>
+        <div class="lc-lbl">Dados atualizados</div>
+        <div class="lc-val" style="font-size:13px;margin-top:2px" id="lv-data">—</div>
+        <div class="lc-sub">automático</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADICIONAR ATIVO -->
+  <div class="card">
+    <p class="section-title">adicionar investimento</p>
+
+    <div class="form-grid" id="form-grid">
+      <div class="fg">
+        <label>Nome do ativo</label>
+        <input type="text" id="cf-nome" placeholder="ex: LCA ORIGINAL - MAI/2026">
+      </div>
+      <div class="fg">
+        <label>Tipo / indexador</label>
+        <select id="cf-tipo" onchange="onTipoChange()">
+          <option value="pre">Pré-fixado (CDB/LC)</option>
+          <option value="pre_iso">Pré-fixado isento (LCI/LCA)</option>
+          <option value="pos">Pós-fixado % CDI</option>
+          <option value="ipca">IPCA+ spread</option>
+          <option value="selic">Selic+ spread</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Data da compra</label>
+        <input type="date" id="cf-compra">
+      </div>
+      <div class="fg">
+        <label>Vencimento</label>
+        <input type="date" id="cf-venc">
+      </div>
+      <div class="fg">
+        <div class="taxa-row">
+          <div class="fg">
+            <label id="cf-taxa-lbl">Taxa (% a.a.)</label>
+            <input type="number" id="cf-taxa" step="0.01" min="0" placeholder="12,09">
+          </div>
+          <span class="taxa-uni" id="cf-taxa-uni">% a.a.</span>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Valor aplicado (R$)</label>
+        <input type="number" id="cf-valor" step="0.01" min="0" placeholder="3000,00">
+      </div>
+      <button class="btn-add" onclick="adicionarAporte()">+ Adicionar</button>
+    </div>
+
+    <div class="empty-state" id="empty-state">
+      Nenhum investimento adicionado ainda.<br>
+      Preencha os dados acima e clique em <strong>+ Adicionar</strong>.
+    </div>
+
+    <!-- Resumo -->
+    <div id="resumo-wrap" style="display:none">
+      <div class="resumo-grid">
+        <div class="resumo-item">
+          <div class="ri-lbl">Total aplicado</div>
+          <div class="ri-val" id="r-aplicado">—</div>
+        </div>
+        <div class="resumo-item">
+          <div class="ri-lbl">Valor atual estimado</div>
+          <div class="ri-val" id="r-atual">—</div>
+        </div>
+        <div class="resumo-item">
+          <div class="ri-lbl">Rendimento acumulado</div>
+          <div class="ri-val pos" id="r-rend">—</div>
+        </div>
+        <div class="resumo-item">
+          <div class="ri-lbl">Retorno médio</div>
+          <div class="ri-val" id="r-ret">—</div>
+        </div>
+      </div>
+
+      <!-- Tabela -->
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Ativo</th>
+              <th>Compra</th>
+              <th>Vencimento</th>
+              <th>Progresso</th>
+              <th>Rentabilidade</th>
+              <th>Valor aplicado</th>
+              <th>Valor atual</th>
+              <th>Rendimento</th>
+              <th>Retorno</th>
+              <th style="border-left:1px solid var(--border)">No vencimento</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+
+      <p class="nota">
+        <strong>Valor atual</strong>: calculado com CDI diário e IPCA mensal <strong>realizados</strong> via API do Banco Central (SGS 4391 e SGS 433) — mesma base usada pelas corretoras. Indicador <span style="color:var(--green)">● BCB real</span> confirma quando os dados históricos foram carregados com sucesso. <span style="color:var(--amber)">● projeção</span> indica uso de estimativa (API indisponível).<br>
+        <strong>No vencimento</strong>: período passado com dados reais BCB + período futuro com projeções Boletim Focus / trajetória Copom.<br>
+        Os dados são salvos no navegador (localStorage). Confira os valores exatos na sua corretora.
+      </p>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <p>Calculadora para fins educacionais · Rentabilidade passada não garante retorno futuro</p>
+  <p style="margin-top:4px">
+    Dados via <a href="https://dadosabertos.bcb.gov.br" target="_blank">API pública do Banco Central do Brasil</a>
+    · <a href="index.html">← Voltar ao simulador</a>
+  </p>
+</footer>
+
+<script>
+// ──────────────────────────────────────────────
+// Constantes e fallbacks (espelho do index.html)
+// ──────────────────────────────────────────────
+let SELIC_META  = 14.75;
+let SELIC_EFET  = 14.65;
+let IPCA        = 4.14;
+let FOCUS_SELIC = [];
+let FOCUS_IPCA  = [];
+let FOCUS_DATA  = '';
+let REUNIOES_COPOM = [];
+
+const COPOM_FALLBACK = [
+  { data:'2026-04-29', selic:14.50 },
+  { data:'2026-06-17', selic:14.25 },
+  { data:'2026-08-05', selic:14.00 },
+  { data:'2026-09-16', selic:13.75 },
+  { data:'2026-11-04', selic:13.50 },
+  { data:'2026-12-09', selic:13.25 },
+  { data:'2027-02-03', selic:13.00 },
+  { data:'2027-03-17', selic:12.75 },
+  { data:'2027-05-05', selic:12.50 },
+  { data:'2027-06-16', selic:12.25 },
+  { data:'2027-07-28', selic:12.00 },
+  { data:'2027-09-15', selic:11.50 },
+  { data:'2027-11-03', selic:11.25 },
+  { data:'2027-12-08', selic:11.00 },
+];
+const FOCUS_SELIC_FALLBACK = [
+  { ano:2026, mediana:13.00 }, { ano:2027, mediana:11.00 },
+  { ano:2028, mediana:10.00 }, { ano:2029, mediana:9.88  },
+];
+const FOCUS_IPCA_FALLBACK = [
+  { ano:2026, mediana:4.86 }, { ano:2027, mediana:4.00 },
+  { ano:2028, mediana:3.61 }, { ano:2029, mediana:3.50  },
+];
+
+// ──────────────────────────────────────────────
+// Carregar dados.json (mesmo do simulador)
+// ──────────────────────────────────────────────
+async function carregarDados() {
+  try {
+    const r = await fetch('dados.json?_=' + Date.now());
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+
+    SELIC_META = d.selicMeta  || SELIC_META;
+    SELIC_EFET = d.selic      || SELIC_EFET;
+    IPCA       = d.ipca       || IPCA;
+    FOCUS_DATA = d.focusData  || '';
+
+    const fs = d.focusSelic || [];
+    FOCUS_SELIC = fs.length ? fs : FOCUS_SELIC_FALLBACK;
+
+    const fi = d.focusIPCA || [];
+    FOCUS_IPCA = fi.length ? fi : FOCUS_IPCA_FALLBACK;
+
+    const cc = d.copomCalendario || [];
+    const validos = cc.filter(r => r.selic !== cc[0]?.selic || cc.length < 2);
+    REUNIOES_COPOM = cc.length >= 2 ? cc : COPOM_FALLBACK;
+
+    // Valida trajetória (se todos iguais, usa fallback)
+    const selics = REUNIOES_COPOM.map(r => r.selic);
+    if (new Set(selics).size < 2) REUNIOES_COPOM = COPOM_FALLBACK;
+
+    document.getElementById('lv-data').textContent =
+      d.atualizadoEm ? d.atualizadoEm.split(' ')[0] : 'fallback';
+  } catch(e) {
+    console.warn('dados.json indisponível, usando fallbacks', e);
+    FOCUS_SELIC    = FOCUS_SELIC_FALLBACK;
+    FOCUS_IPCA     = FOCUS_IPCA_FALLBACK;
+    REUNIOES_COPOM = COPOM_FALLBACK;
+    document.getElementById('lv-data').textContent = 'fallback';
+  }
+  atualizarLive();
+  renderCarteira();
+}
+
+function atualizarLive() {
+  const cdi = (SELIC_META - 0.10).toFixed(2).replace('.',',');
+  document.getElementById('lv-selic-meta').textContent = SELIC_META.toFixed(2).replace('.',',') + '%';
+  document.getElementById('lv-cdi').textContent        = cdi + '%';
+  document.getElementById('lv-ipca').textContent       = IPCA.toFixed(2).replace('.',',') + '%';
+  if (!document.getElementById('lv-data').textContent ||
+       document.getElementById('lv-data').textContent === '—')
+    document.getElementById('lv-data').textContent = 'carregando…';
+}
+
+// ──────────────────────────────────────────────
+// Feriados B3 — somente os que o CDI NÃO acumula
+// (fins de semana + estes feriados nacionais)
+// Quinta Santa, Corpus Christi e municipais NÃO entram
+// ──────────────────────────────────────────────
+const FERIADOS_B3 = new Set([
+  '2024-01-01','2024-02-12','2024-02-13','2024-03-29',
+  '2024-05-01','2024-11-02','2024-11-15','2024-11-20','2024-12-25',
+  '2025-01-01','2025-03-03','2025-03-04','2025-04-18',
+  '2025-05-01','2025-11-02','2025-11-15','2025-11-20','2025-12-25',
+  '2026-01-01','2026-02-16','2026-02-17','2026-04-03',
+  '2026-05-01','2026-11-02','2026-11-15','2026-11-20','2026-12-25',
+  '2027-01-01','2027-02-15','2027-02-16','2027-03-26',
+  '2027-05-01','2027-11-02','2027-11-15','2027-11-20','2027-12-25',
+]);
+
+function ehDiaUtil(iso) {
+  const dow = new Date(iso + 'T12:00:00').getDay();
+  return dow !== 0 && dow !== 6 && !FERIADOS_B3.has(iso);
+}
+
+function proximoDiaUtil(iso) {
+  const d = new Date(iso + 'T12:00:00');
+  d.setDate(d.getDate() + 1);
+  while (!ehDiaUtil(d.toISOString().slice(0,10)))
+    d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0,10);
+}
+
+// ──────────────────────────────────────────────
+// Cache de séries históricas do BCB
+// CDI_HIST: { 'YYYY-MM-DD': fatorDiario }
+// IPCA_HIST: { 'YYYY-MM': variacaoDecimal }
+// ──────────────────────────────────────────────
+const CDI_HIST  = {};
+const IPCA_HIST = {};
+let   historicoCarregado = false;
+
+function fmtBCB(d){ return d.toISOString().slice(0,10).split('-').reverse().join('/'); }
+
+async function carregarHistorico(dataMinISO) {
+  const dataMin = dataMinISO.split('-').reverse().join('/');
+  const hoje    = fmtBCB(new Date());
+  try {
+    const [rCDI, rIPCA] = await Promise.all([
+      fetch(`https://api.bcb.gov.br/dados/serie/bcdata.sgs.4391/dados?formato=json&dataInicial=${dataMin}&dataFinal=${hoje}`)
+        .then(r => r.ok ? r.json() : []),
+      fetch(`https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados?formato=json&dataInicial=${dataMin}&dataFinal=${hoje}`)
+        .then(r => r.ok ? r.json() : []),
+    ]);
+    for (const item of rCDI) {
+      const [d,m,y] = item.data.split('/');
+      CDI_HIST[`${y}-${m}-${d}`] = 1 + parseFloat(item.valor.replace(',','.')) / 100;
+    }
+    for (const item of rIPCA) {
+      const [,m,y] = item.data.split('/');
+      IPCA_HIST[`${y}-${m}`] = parseFloat(item.valor.replace(',','.')) / 100;
+    }
+    historicoCarregado = Object.keys(CDI_HIST).length > 0;
+    console.log(`CDI: ${Object.keys(CDI_HIST).length} dias | IPCA: ${Object.keys(IPCA_HIST).length} meses`);
+  } catch(e) {
+    console.warn('Histórico BCB indisponível:', e);
+  }
+}
+
+// ──────────────────────────────────────────────
+// Selic vigente numa data (última decisão Copom antes dela)
+// ──────────────────────────────────────────────
+function selicEm(iso) {
+  let s = SELIC_META;
+  const ref = new Date(iso + 'T12:00:00');
+  for (const r of REUNIOES_COPOM) {
+    if (new Date(r.data + 'T12:00:00') <= ref) s = r.selic;
+  }
+  return s;
+}
+
+// ──────────────────────────────────────────────
+// CDI % pct — composição diária correta (método corretora)
+// Passado real: usa CDI_HIST (BCB) dia a dia
+// Fallback: estima com Selic * 0,999 / 252 d.u.
+// Fórmula: produto de (1 + CDI_dia)^pct para cada dia útil
+// ──────────────────────────────────────────────
+function calcCDIpct(dataInicioISO, pct) {
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  let cur    = new Date(proximoDiaUtil(dataInicioISO) + 'T12:00:00');
+  let fator  = 1;
+  while (cur < hoje) {
+    const iso = cur.toISOString().slice(0,10);
+    if (ehDiaUtil(iso)) {  // sempre filtra dia útil, independente da fonte
+      let fd;
+      if (CDI_HIST[iso] && CDI_HIST[iso] > 1) {
+        // dado real BCB — só usa se fator > 1 (taxa positiva, não zero)
+        fd = CDI_HIST[iso];
+      } else {
+        // fallback: estima com Selic * 0,999 / 252 d.u.
+        fd = Math.pow(1 + selicEm(iso) * 0.999 / 100, 1/252);
+      }
+      fator *= Math.pow(fd, pct);
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+  return fator - 1;
+}
+
+// CDI simples (sem %) — para Selic+ spread
+function calcCDIsimples(dataInicioISO) {
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  let cur    = new Date(proximoDiaUtil(dataInicioISO) + 'T12:00:00');
+  let fator  = 1;
+  while (cur < hoje) {
+    const iso = cur.toISOString().slice(0,10);
+    if (ehDiaUtil(iso)) {
+      fator *= (CDI_HIST[iso] && CDI_HIST[iso] > 1)
+        ? CDI_HIST[iso]
+        : Math.pow(1 + selicEm(iso) * 0.999 / 100, 1/252);
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+  return fator - 1;
+}
+
+// IPCA acumulado real (mensal BCB) + fallback Focus para meses sem dado
+function calcIPCAreal(dataInicioISO) {
+  const hoje  = new Date(); hoje.setHours(0,0,0,0);
+  const inicio = new Date(dataInicioISO + 'T12:00:00');
+  let fator = 1;
+  let y = inicio.getFullYear(), m = inicio.getMonth() + 1;
+  const yH = hoje.getFullYear(), mH = hoje.getMonth() + 1;
+  while (y < yH || (y === yH && m < mH)) {
+    const mesISO = `${y}-${String(m).padStart(2,'0')}`;
+    if (IPCA_HIST[mesISO] !== undefined) {
+      fator *= (1 + IPCA_HIST[mesISO]);
+    } else {
+      const fp = FOCUS_IPCA.find(p => p.ano === y);
+      if (fp) fator *= Math.pow(1 + fp.mediana/100, 1/12);
+    }
+    m++; if (m > 12){ m=1; y++; }
+  }
+  return fator - 1;
+}
+
+// CDI futuro projetado (hoje → N dias corridos) via Copom ponderado
+function cdiFuturoAcum(diasFuturos) {
+  if (diasFuturos <= 0) return 0;
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const fim  = new Date(hoje); fim.setDate(fim.getDate() + diasFuturos);
+  let selicVig = selicEm(hoje.toISOString().slice(0,10));
+  const futuras = REUNIOES_COPOM
+    .filter(r => new Date(r.data+'T12:00:00') > hoje)
+    .sort((a,b) => a.data.localeCompare(b.data));
+  let soma=0, diasOk=0, segIni=hoje;
+  for (const r of futuras) {
+    const dr = new Date(r.data+'T12:00:00');
+    if (dr >= fim) break;
+    const dias = (dr-segIni)/86400000;
+    soma+=selicVig*dias; diasOk+=dias; segIni=dr; selicVig=r.selic;
+  }
+  const df=(fim-segIni)/86400000;
+  soma+=selicVig*df; diasOk+=df;
+  if (diasOk<=0) return 0;
+  return Math.pow(1+(soma/diasOk)*0.999/100, diasFuturos/365)-1;
+}
+
+// IPCA futuro projetado via Focus
+function ipcaFuturoAcum(diasFuturos) {
+  if (diasFuturos<=0) return 0;
+  const hoje=new Date(); hoje.setHours(0,0,0,0);
+  const anoAtual=hoje.getFullYear();
+  const diaDoAno=Math.floor((hoje-new Date(anoAtual,0,1))/86400000);
+  const diasRestAno=365-diaDoAno;
+  let soma=0,diasOk=0,diasAcum=0;
+  for (const p of FOCUS_IPCA) {
+    const dN=p.ano===anoAtual?diasRestAno:365;
+    const sob=Math.max(0,Math.min(diasAcum+dN,diasFuturos)-diasAcum);
+    soma+=p.mediana*sob; diasOk+=sob; diasAcum+=dN;
+    if(diasAcum>=diasFuturos) break;
+  }
+  if(diasOk<=0) return FOCUS_IPCA[0].mediana/100;
+  return Math.pow(1+soma/diasOk/100, diasFuturos/365)-1;
+}
+
+// ── Cálculo principal ─────────────────────────
+function calcAporte(ap) {
+  const hoje   = new Date(); hoje.setHours(0,0,0,0);
+  const inicio = new Date(ap.compra+'T12:00:00');
+  const venc   = new Date(ap.venc  +'T12:00:00');
+  const diasDec = Math.max(0, Math.round((hoje -inicio)/86400000));
+  const diasTot = Math.max(1, Math.round((venc -inicio)/86400000));
+  const diasFut = Math.max(0, Math.round((venc -hoje  )/86400000));
+
+  if (diasDec <= 0)
+    return { valorAtual:ap.valor, valorVenc:ap.valor, rendimento:0, retorno:0,
+             rendVenc:0, retornoVenc:0, diasDec:0, diasTot };
+
+  const isIse  = ap.tipo==='pre_iso';
+  const irHoje = isIse?0: diasDec<=180?0.225: diasDec<=360?0.20: diasDec<=720?0.175:0.15;
+  const irVenc = isIse?0: diasTot<=180?0.225: diasTot<=360?0.20: diasTot<=720?0.175:0.15;
+
+  // ── Passado (compra → hoje) com dados reais ───
+  let fH;
+  if (ap.tipo==='pre'||ap.tipo==='pre_iso') {
+    fH = Math.pow(1+ap.taxa/100, diasDec/365)-1;
+  } else if (ap.tipo==='pos') {
+    fH = calcCDIpct(ap.compra, ap.taxa/100);
+  } else if (ap.tipo==='ipca') {
+    const iR = calcIPCAreal(ap.compra);
+    fH = (1+iR)*(1+Math.pow(1+ap.taxa/100,diasDec/365)-1)-1;
+  } else if (ap.tipo==='selic') {
+    const cR = calcCDIsimples(ap.compra);
+    fH = (1+cR)*(1+Math.pow(1+ap.taxa/100,diasDec/365)-1)-1;
+  } else {
+    fH = Math.pow(1+ap.taxa/100, diasDec/365)-1;
+  }
+
+  // ── Futuro (hoje → vencimento) projetado ──────
+  let fF = 0;
+  if (diasFut > 0) {
+    if (ap.tipo==='pre'||ap.tipo==='pre_iso') {
+      fF = Math.pow(1+ap.taxa/100, diasFut/365)-1;
+    } else if (ap.tipo==='pos') {
+      fF = Math.pow(1+cdiFuturoAcum(diasFut), ap.taxa/100)-1;
+    } else if (ap.tipo==='ipca') {
+      const ipcaFut = ipcaFuturoAcum(diasFut);
+      const spreadFut = Math.pow(1+ap.taxa/100, diasFut/365)-1;
+      fF = (1+ipcaFut)*(1+spreadFut)-1;
+    } else if (ap.tipo==='selic') {
+      const cdiFut = cdiFuturoAcum(diasFut);
+      const spreadFut = Math.pow(1+ap.taxa/100, diasFut/365)-1;
+      fF = (1+cdiFut)*(1+spreadFut)-1;
+    } else {
+      fF = Math.pow(1+ap.taxa/100, diasFut/365)-1;
+    }
+  }
+
+  const fVenc = (1+fH)*(1+fF)-1;
+
+  const brutoH     = ap.valor * fH;
+  const rendimento = brutoH * (1-irHoje);
+  const valorAtual = ap.valor + rendimento;
+  const retorno    = (rendimento/ap.valor)*100;
+
+  const brutoV      = ap.valor * fVenc;
+  const rendVenc    = brutoV * (1-irVenc);
+  const valorVenc   = ap.valor + rendVenc;
+  const retornoVenc = (rendVenc/ap.valor)*100;
+
+  return { valorAtual, valorVenc, rendimento, retorno, rendVenc, retornoVenc, diasDec, diasTot };
+}
+
+// ──────────────────────────────────────────────
+// Utilitários de formatação
+// ──────────────────────────────────────────────
+function fmt(n){ return n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtD(iso){ if(!iso) return '—'; const[y,m,d]=iso.split('-'); return `${d}/${m}/${y}`; }
+function tipoLabel(tipo, taxa) {
+  const t = taxa.toFixed(2).replace('.',',');
+  if (tipo === 'pre')      return `+${t}% a.a.`;
+  if (tipo === 'pre_iso')  return `+${t}% a.a.`;
+  if (tipo === 'pos')      return `${t}% CDI`;
+  if (tipo === 'ipca')     return `IPCA +${t}%`;
+  if (tipo === 'selic')    return `Selic +${t}%`;
+  return `${t}%`;
+}
+function tipoBadge(tipo) {
+  const m = {
+    pre:     ['tb-pre',  'Pré'],
+    pre_iso: ['tb-iso',  'Isento'],
+    pos:     ['tb-pos',  'CDI'],
+    ipca:    ['tb-ipca', 'IPCA+'],
+    selic:   ['tb-selic','Selic+'],
+  };
+  const [cls, label] = m[tipo] || ['tb-pre', tipo];
+  return `<span class="tipo-badge ${cls}">${label}</span>`;
+}
+
+// ──────────────────────────────────────────────
+// Carteira (localStorage)
+// ──────────────────────────────────────────────
+const STORE_KEY = 'rfb_carteira_v1';
+let carteira = [];
+
+function carregar() {
+  try { carteira = JSON.parse(localStorage.getItem(STORE_KEY)) || []; } catch(e){ carteira=[]; }
+}
+function salvar() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(carteira)); } catch(e){}
+}
+
+function renderCarteira() {
+  const empty  = document.getElementById('empty-state');
+  const rWrap  = document.getElementById('resumo-wrap');
+  const tbody  = document.getElementById('tbody');
+
+  if (!carteira.length) {
+    empty.style.display = 'block';
+    rWrap.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  rWrap.style.display = 'block';
+
+  let totApl=0, totAtual=0, totRend=0;
+
+  tbody.innerHTML = carteira.map((ap, i) => {
+    const { valorAtual, valorVenc, rendimento, retorno, rendVenc, retornoVenc, diasDec, diasTot } = calcAporte(ap);
+    totApl   += ap.valor;
+    totAtual += valorAtual;
+    totRend  += rendimento;
+
+    const pct    = Math.min(100, diasTot > 0 ? (diasDec / diasTot) * 100 : 0);
+    const venceu = diasDec >= diasTot;
+    const retCls = retorno >= 0 ? 'td-pos' : 'td-neg';
+    const retVCls = retornoVenc >= 0 ? 'td-pos' : 'td-neg';
+    const fonteBCB = historicoCarregado
+      ? '<span style="font-size:9px;color:var(--green)">● BCB real</span>'
+      : '<span style="font-size:9px;color:var(--amber)">● projeção</span>';
+
+    return `<tr>
+      <td class="td-nome">${ap.nome}<br>${tipoBadge(ap.tipo)}</td>
+      <td>${fmtD(ap.compra)}</td>
+      <td>${fmtD(ap.venc)}</td>
+      <td>
+        <div class="prog-bar"><div class="prog-fill${venceu?' done':''}" style="width:${pct.toFixed(0)}%"></div></div>
+        <span style="font-size:10px;color:var(--text3)">${diasDec}/${diasTot}d (${pct.toFixed(0)}%)</span>
+      </td>
+      <td>${tipoLabel(ap.tipo, ap.taxa)}</td>
+      <td>R$ ${fmt(ap.valor)}</td>
+      <td>R$ ${fmt(valorAtual)}<br>${fonteBCB}</td>
+      <td class="${retCls}">R$ ${fmt(rendimento)}</td>
+      <td class="td-ret ${retCls}">${retorno.toFixed(2).replace('.',',')}%</td>
+      <td style="border-left:1px solid var(--border);padding-left:12px">
+        <div style="font-size:11px;color:var(--text3)">no vencimento</div>
+        <div class="${retVCls}" style="font-weight:500">R$ ${fmt(valorVenc)}</div>
+        <div class="td-ret ${retVCls}">${retornoVenc.toFixed(2).replace('.',',')}% líq.</div>
+      </td>
+      <td><button class="btn-del" onclick="remover(${i})" title="Remover">✕</button></td>
+    </tr>`;
+  }).join('');
+
+  const retMed = totApl > 0 ? ((totAtual - totApl) / totApl) * 100 : 0;
+  document.getElementById('r-aplicado').textContent = 'R$ ' + fmt(totApl);
+  document.getElementById('r-atual').textContent    = 'R$ ' + fmt(totAtual);
+  document.getElementById('r-rend').textContent     = (totRend >= 0 ? '+' : '') + 'R$ ' + fmt(totRend);
+  document.getElementById('r-ret').textContent      = (retMed >= 0 ? '+' : '') + retMed.toFixed(2).replace('.',',') + '%';
+  document.getElementById('r-rend').className = 'ri-val ' + (totRend >= 0 ? 'pos' : 'neg');
+  document.getElementById('r-ret').className  = 'ri-val ' + (retMed  >= 0 ? 'pos' : 'neg');
+}
+
+async function adicionarAporte() {
+  const nome  = document.getElementById('cf-nome').value.trim();
+  const tipo  = document.getElementById('cf-tipo').value;
+  const comp  = document.getElementById('cf-compra').value;
+  const venc  = document.getElementById('cf-venc').value;
+  const taxa  = parseFloat(document.getElementById('cf-taxa').value);
+  const valor = parseFloat(document.getElementById('cf-valor').value);
+
+  if (!nome)           { alert('Informe o nome do ativo.');         return; }
+  if (!comp)           { alert('Informe a data de compra.');        return; }
+  if (!venc)           { alert('Informe a data de vencimento.');    return; }
+  if (isNaN(taxa)||taxa<=0) { alert('Informe a taxa/rentabilidade.'); return; }
+  if (isNaN(valor)||valor<=0){ alert('Informe o valor aplicado.'); return; }
+  if (venc <= comp)    { alert('Vencimento deve ser após a compra.'); return; }
+
+  carteira.push({ nome, tipo, compra: comp, venc, taxa, valor });
+  salvar();
+
+  // Carrega histórico se ainda não tem dados suficientes
+  await carregarHistorico(comp);
+  renderCarteira();
+
+  // limpa campos (mantém tipo e vencimento para facilitar lotes)
+  document.getElementById('cf-nome').value  = '';
+  document.getElementById('cf-taxa').value  = '';
+  document.getElementById('cf-valor').value = '';
+}
+
+function remover(i) {
+  if (!confirm('Remover este ativo da carteira?')) return;
+  carteira.splice(i, 1);
+  salvar();
+  renderCarteira();
+}
+
+function onTipoChange() {
+  const tipo = document.getElementById('cf-tipo').value;
+  const lbl  = document.getElementById('cf-taxa-lbl');
+  const uni  = document.getElementById('cf-taxa-uni');
+  const inp  = document.getElementById('cf-taxa');
+  if (tipo === 'pos')  { lbl.textContent = '% do CDI';     uni.textContent = '% CDI'; inp.placeholder = '120,00'; }
+  else if (tipo === 'ipca') { lbl.textContent = 'Spread IPCA+';  uni.textContent = '% a.a.'; inp.placeholder = '8,93'; }
+  else if (tipo === 'selic'){ lbl.textContent = 'Spread Selic+'; uni.textContent = '% a.a.'; inp.placeholder = '2,00'; }
+  else                 { lbl.textContent = 'Taxa (% a.a.)'; uni.textContent = '% a.a.'; inp.placeholder = '12,09'; }
+}
+
+// ──────────────────────────────────────────────
+// Init
+// ──────────────────────────────────────────────
+carregar();
+document.getElementById('cf-compra').value = new Date().toISOString().slice(0,10);
+atualizarLive();
+
+async function init() {
+  await carregarDados(); // dados.json primeiro (Copom, Focus)
+
+  // Descobre a data de compra mais antiga da carteira para buscar histórico mínimo
+  if (carteira.length) {
+    const minData = carteira.reduce((m, ap) => ap.compra < m ? ap.compra : m, carteira[0].compra);
+    await carregarHistorico(minData);
+  }
+
+  renderCarteira();
+}
+
+init();
+</script>
+</body>
+</html>
