@@ -409,7 +409,7 @@ async function carregarDados() {
     document.getElementById('lv-data').textContent = 'fallback';
   }
   atualizarLive();
-  renderCarteira();
+  // NÃO renderiza aqui — init() renderiza após carregar histórico BCB
 }
 
 function atualizarLive() {
@@ -736,9 +736,18 @@ function renderCarteira() {
     const venceu = diasDec >= diasTot;
     const retCls = retorno >= 0 ? 'td-pos' : 'td-neg';
     const retVCls = retornoVenc >= 0 ? 'td-pos' : 'td-neg';
-    const fonteBCB = historicoCarregado
-      ? '<span style="font-size:9px;color:var(--green)">● BCB real</span>'
-      : '<span style="font-size:9px;color:var(--amber)">● projeção</span>';
+
+    // Badge: pré-fixado não precisa de BCB; pós/selic verifica CDI_HIST; ipca verifica IPCA_HIST
+    const d1 = proximoDiaUtil(ap.compra);
+    const usaBCB = ap.tipo === 'pos' || ap.tipo === 'selic'
+      ? !!CDI_HIST[d1]
+      : ap.tipo === 'ipca'
+        ? Object.keys(IPCA_HIST).length > 0
+        : null; // null = pré-fixado, não exibe badge
+    const fonteBCB = usaBCB === null ? ''
+      : usaBCB
+        ? '<span style="font-size:9px;color:var(--green)">● BCB real</span>'
+        : '<span style="font-size:9px;color:var(--amber)">● estimado</span>';
 
     return `<tr>
       <td class="td-nome">${ap.nome}<br>${tipoBadge(ap.tipo)}</td>
@@ -825,15 +834,19 @@ document.getElementById('cf-compra').value = new Date().toISOString().slice(0,10
 atualizarLive();
 
 async function init() {
-  await carregarDados(); // dados.json primeiro (Copom, Focus)
+  await carregarDados(); // Focus + Copom
 
-  // Descobre a data de compra mais antiga da carteira para buscar histórico mínimo
   if (carteira.length) {
+    // Mostra carteira com estimativa enquanto busca BCB
+    renderCarteira();
+
+    // Busca histórico real a partir da compra mais antiga
     const minData = carteira.reduce((m, ap) => ap.compra < m ? ap.compra : m, carteira[0].compra);
     await carregarHistorico(minData);
-  }
 
-  renderCarteira();
+    // Re-renderiza com dados reais
+    renderCarteira();
+  }
 }
 
 init();
