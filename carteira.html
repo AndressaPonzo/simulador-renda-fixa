@@ -511,10 +511,15 @@ function calcCDIpct(dataInicioISO, pct) {
   let fator  = 1;
   while (cur < hoje) {
     const iso = cur.toISOString().slice(0,10);
-    if (ehDiaUtil(iso)) {
-      const fd = CDI_HIST[iso]
-        ? CDI_HIST[iso]
-        : Math.pow(1 + selicEm(iso) * 0.999 / 100, 1/252);
+    if (ehDiaUtil(iso)) {  // sempre filtra dia útil, independente da fonte
+      let fd;
+      if (CDI_HIST[iso] && CDI_HIST[iso] > 1) {
+        // dado real BCB — só usa se fator > 1 (taxa positiva, não zero)
+        fd = CDI_HIST[iso];
+      } else {
+        // fallback: estima com Selic * 0,999 / 252 d.u.
+        fd = Math.pow(1 + selicEm(iso) * 0.999 / 100, 1/252);
+      }
       fator *= Math.pow(fd, pct);
     }
     cur.setDate(cur.getDate() + 1);
@@ -530,7 +535,7 @@ function calcCDIsimples(dataInicioISO) {
   while (cur < hoje) {
     const iso = cur.toISOString().slice(0,10);
     if (ehDiaUtil(iso)) {
-      fator *= CDI_HIST[iso]
+      fator *= (CDI_HIST[iso] && CDI_HIST[iso] > 1)
         ? CDI_HIST[iso]
         : Math.pow(1 + selicEm(iso) * 0.999 / 100, 1/252);
     }
