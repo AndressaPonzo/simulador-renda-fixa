@@ -737,13 +737,15 @@ function renderCarteira() {
     const retCls = retorno >= 0 ? 'td-pos' : 'td-neg';
     const retVCls = retornoVenc >= 0 ? 'td-pos' : 'td-neg';
 
-    // Badge: pré-fixado não precisa de BCB; pós/selic verifica CDI_HIST; ipca verifica IPCA_HIST
+    // Badge: verifica se há dados BCB reais no período do ativo
     const d1 = proximoDiaUtil(ap.compra);
+    const temCDI  = Object.keys(CDI_HIST).some(k => k >= d1);
+    const temIPCA = Object.keys(IPCA_HIST).length > 0;
     const usaBCB = ap.tipo === 'pos' || ap.tipo === 'selic'
-      ? !!CDI_HIST[d1]
+      ? temCDI
       : ap.tipo === 'ipca'
-        ? Object.keys(IPCA_HIST).length > 0
-        : null; // null = pré-fixado, não exibe badge
+        ? temIPCA
+        : null; // pré-fixado não exibe badge
     const fonteBCB = usaBCB === null ? ''
       : usaBCB
         ? '<span style="font-size:9px;color:var(--green)">● BCB real</span>'
