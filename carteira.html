@@ -244,11 +244,12 @@
       <div class="fg">
         <label>Tipo / indexador</label>
         <select id="cf-tipo" onchange="onTipoChange()">
-          <option value="pre">Pré-fixado (CDB/LC)</option>
-          <option value="pre_iso">Pré-fixado isento (LCI/LCA)</option>
-          <option value="pos">Pós-fixado % CDI</option>
-          <option value="ipca">IPCA+ spread</option>
-          <option value="selic">Selic+ spread</option>
+          <option value="pre">Pré-fixado — CDB/LC (com IR)</option>
+          <option value="pre_iso">Pré-fixado isento — LCI/LCA/CRI/CRA</option>
+          <option value="pos">Pós CDI % — CDB/LC (com IR)</option>
+          <option value="pos_iso">Pós CDI % isento — LCI/LCA/CRI/CRA</option>
+          <option value="ipca">IPCA+ spread (com IR)</option>
+          <option value="selic">Selic+ spread (com IR)</option>
         </select>
       </div>
       <div class="fg">
@@ -618,7 +619,7 @@ function calcAporte(ap) {
     return { valorAtual:ap.valor, valorVenc:ap.valor, rendimento:0, retorno:0,
              rendVenc:0, retornoVenc:0, diasDec:0, diasTot };
 
-  const isIse  = ap.tipo==='pre_iso';
+  const isIse  = ap.tipo==='pre_iso' || ap.tipo==='pos_iso';
   const irHoje = isIse?0: diasDec<=180?0.225: diasDec<=360?0.20: diasDec<=720?0.175:0.15;
   const irVenc = isIse?0: diasTot<=180?0.225: diasTot<=360?0.20: diasTot<=720?0.175:0.15;
 
@@ -626,7 +627,7 @@ function calcAporte(ap) {
   let fH;
   if (ap.tipo==='pre'||ap.tipo==='pre_iso') {
     fH = Math.pow(1+ap.taxa/100, diasDec/365)-1;
-  } else if (ap.tipo==='pos') {
+  } else if (ap.tipo==='pos'||ap.tipo==='pos_iso') {
     fH = calcCDIpct(ap.compra, ap.taxa/100);
   } else if (ap.tipo==='ipca') {
     const iR = calcIPCAreal(ap.compra);
@@ -643,7 +644,7 @@ function calcAporte(ap) {
   if (diasFut > 0) {
     if (ap.tipo==='pre'||ap.tipo==='pre_iso') {
       fF = Math.pow(1+ap.taxa/100, diasFut/365)-1;
-    } else if (ap.tipo==='pos') {
+    } else if (ap.tipo==='pos'||ap.tipo==='pos_iso') {
       fF = Math.pow(1+cdiFuturoAcum(diasFut), ap.taxa/100)-1;
     } else if (ap.tipo==='ipca') {
       const ipcaFut = ipcaFuturoAcum(diasFut);
@@ -685,6 +686,7 @@ function tipoLabel(tipo, taxa) {
   if (tipo === 'pre')      return `+${t}% a.a.`;
   if (tipo === 'pre_iso')  return `+${t}% a.a.`;
   if (tipo === 'pos')      return `${t}% CDI`;
+  if (tipo === 'pos_iso')  return `${t}% CDI`;
   if (tipo === 'ipca')     return `IPCA +${t}%`;
   if (tipo === 'selic')    return `Selic +${t}%`;
   return `${t}%`;
@@ -694,6 +696,7 @@ function tipoBadge(tipo) {
     pre:     ['tb-pre',  'Pré'],
     pre_iso: ['tb-iso',  'Isento'],
     pos:     ['tb-pos',  'CDI'],
+    pos_iso: ['tb-iso',  'CDI isento'],
     ipca:    ['tb-ipca', 'IPCA+'],
     selic:   ['tb-selic','Selic+'],
   };
@@ -744,12 +747,13 @@ function renderCarteira() {
     const d1 = proximoDiaUtil(ap.compra);
     const temCDI  = Object.keys(CDI_HIST).some(k => k >= d1);
     const temIPCA = Object.keys(IPCA_HIST).length > 0;
-    const usaBCB = ap.tipo === 'pos' || ap.tipo === 'selic'
+    const usaBCB = (ap.tipo==='pos'||ap.tipo==='pos_iso'||ap.tipo==='selic')
       ? temCDI
-      : ap.tipo === 'ipca'
-        ? temIPCA
-        : null; // pré-fixado não exibe badge
-    const fonteBCB = usaBCB === null ? ''
+      : ap.tipo==='ipca' ? temIPCA : null;
+    const fonteBCB = usaBCB===null ? ''
+      : usaBCB
+        ? '<span style="font-size:9px;color:var(--green)">● BCB real</span>'
+        : '<span style="font-size:9px;color:var(--amber)">● estimado</span>';
       : usaBCB
         ? '<span style="font-size:9px;color:var(--green)">● BCB real</span>'
         : '<span style="font-size:9px;color:var(--amber)">● estimado</span>';
@@ -829,10 +833,10 @@ function onTipoChange() {
   const lbl  = document.getElementById('cf-taxa-lbl');
   const uni  = document.getElementById('cf-taxa-uni');
   const inp  = document.getElementById('cf-taxa');
-  if (tipo === 'pos')  { lbl.textContent = '% do CDI';     uni.textContent = '% CDI'; inp.placeholder = '120,00'; }
-  else if (tipo === 'ipca') { lbl.textContent = 'Spread IPCA+';  uni.textContent = '% a.a.'; inp.placeholder = '8,93'; }
-  else if (tipo === 'selic'){ lbl.textContent = 'Spread Selic+'; uni.textContent = '% a.a.'; inp.placeholder = '2,00'; }
-  else                 { lbl.textContent = 'Taxa (% a.a.)'; uni.textContent = '% a.a.'; inp.placeholder = '12,09'; }
+  if (tipo==='pos'||tipo==='pos_iso') { lbl.textContent='% do CDI'; uni.textContent='% CDI'; inp.placeholder='115,00'; }
+  else if (tipo==='ipca')  { lbl.textContent='Spread IPCA+';  uni.textContent='% a.a.'; inp.placeholder='8,93'; }
+  else if (tipo==='selic') { lbl.textContent='Spread Selic+'; uni.textContent='% a.a.'; inp.placeholder='2,00'; }
+  else                     { lbl.textContent='Taxa (% a.a.)'; uni.textContent='% a.a.'; inp.placeholder='12,09'; }
 }
 
 // ──────────────────────────────────────────────
