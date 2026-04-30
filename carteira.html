@@ -658,15 +658,17 @@ function calcAporte(ap) {
     }
   }
 
-  const fVenc = (1+fH)*(1+fF)-1;
+  const fVenc = diasFut <= 0 ? fH : (1+fH)*(1+fF)-1;
 
   const brutoH     = ap.valor * fH;
   const rendimento = brutoH * (1-irHoje);
   const valorAtual = ap.valor + rendimento;
   const retorno    = (rendimento/ap.valor)*100;
 
+  // No vencimento: se já venceu ou vence hoje, igual ao valor atual
   const brutoV      = ap.valor * fVenc;
-  const rendVenc    = brutoV * (1-irVenc);
+  const irFinal     = diasFut <= 0 ? irHoje : irVenc;
+  const rendVenc    = brutoV * (1-irFinal);
   const valorVenc   = ap.valor + rendVenc;
   const retornoVenc = (rendVenc/ap.valor)*100;
 
@@ -766,9 +768,12 @@ function renderCarteira() {
       <td class="${retCls}">R$ ${fmt(rendimento)}</td>
       <td class="td-ret ${retCls}">${retorno.toFixed(2).replace('.',',')}%</td>
       <td style="border-left:1px solid var(--border);padding-left:12px">
-        <div style="font-size:11px;color:var(--text3)">no vencimento</div>
-        <div class="${retVCls}" style="font-weight:500">R$ ${fmt(valorVenc)}</div>
-        <div class="td-ret ${retVCls}">${retornoVenc.toFixed(2).replace('.',',')}% líq.</div>
+        ${diasFut <= 0
+          ? `<div style="font-size:11px;color:var(--green)">✓ vencido/hoje</div>`
+          : `<div style="font-size:11px;color:var(--text3)">no vencimento</div>
+             <div class="${retVCls}" style="font-weight:500">R$ ${fmt(valorVenc)}</div>
+             <div class="td-ret ${retVCls}">${retornoVenc.toFixed(2).replace('.',',')}% líq.</div>`
+        }
       </td>
       <td><button class="btn-del" onclick="remover(${i})" title="Remover">✕</button></td>
     </tr>`;
@@ -783,7 +788,7 @@ function renderCarteira() {
   document.getElementById('r-ret').className  = 'ri-val ' + (retMed  >= 0 ? 'pos' : 'neg');
 }
 
-async function adicionarAporte() {
+function adicionarAporte() {
   const nome  = document.getElementById('cf-nome').value.trim();
   const tipo  = document.getElementById('cf-tipo').value;
   const comp  = document.getElementById('cf-compra').value;
@@ -791,21 +796,22 @@ async function adicionarAporte() {
   const taxa  = parseFloat(document.getElementById('cf-taxa').value);
   const valor = parseFloat(document.getElementById('cf-valor').value);
 
-  if (!nome)           { alert('Informe o nome do ativo.');         return; }
-  if (!comp)           { alert('Informe a data de compra.');        return; }
-  if (!venc)           { alert('Informe a data de vencimento.');    return; }
-  if (isNaN(taxa)||taxa<=0) { alert('Informe a taxa/rentabilidade.'); return; }
-  if (isNaN(valor)||valor<=0){ alert('Informe o valor aplicado.'); return; }
-  if (venc <= comp)    { alert('Vencimento deve ser após a compra.'); return; }
+  if (!nome)                { alert('Informe o nome do ativo.');           return; }
+  if (!comp)                { alert('Informe a data de compra.');          return; }
+  if (!venc)                { alert('Informe a data de vencimento.');      return; }
+  if (isNaN(taxa)||taxa<=0) { alert('Informe a taxa/rentabilidade.');      return; }
+  if (isNaN(valor)||valor<=0){ alert('Informe o valor aplicado.');         return; }
+  if (venc <= comp)         { alert('Vencimento deve ser após a compra.'); return; }
 
   carteira.push({ nome, tipo, compra: comp, venc, taxa, valor });
   salvar();
 
-  // Carrega histórico se ainda não tem dados suficientes
-  await carregarHistorico(comp);
+  // Renderiza imediatamente (com estimativa se BCB ainda não carregou)
   renderCarteira();
 
-  // limpa campos (mantém tipo e vencimento para facilitar lotes)
+  // Busca histórico em background e re-renderiza ao terminar
+  carregarHistorico(comp).then(() => renderCarteira());
+
   document.getElementById('cf-nome').value  = '';
   document.getElementById('cf-taxa').value  = '';
   document.getElementById('cf-valor').value = '';
