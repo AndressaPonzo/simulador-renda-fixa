@@ -229,6 +229,13 @@
   <div class="card">
     <p class="section-title">adicionar investimento</p>
 
+    <!-- Painel de validação — remover após confirmar -->
+    <div id="teste-resultado" style="
+      background:var(--bg2); border:1px dashed var(--border2);
+      border-radius:var(--radius); padding:10px 14px; margin-bottom:1rem;
+      font-size:12px; line-height:1.8; color:var(--text2);
+    ">⏳ Calculando teste de validação…</div>
+
     <div class="form-grid" id="form-grid">
       <div class="fg">
         <label>Nome do ativo</label>
@@ -509,17 +516,12 @@ function calcCDIpct(dataInicioISO, pct) {
   const hoje = new Date(); hoje.setHours(0,0,0,0);
   let cur    = new Date(proximoDiaUtil(dataInicioISO) + 'T12:00:00');
   let fator  = 1;
-  while (cur < hoje) {
+  while (cur <= hoje) {
     const iso = cur.toISOString().slice(0,10);
-    if (ehDiaUtil(iso)) {  // sempre filtra dia útil, independente da fonte
-      let fd;
-      if (CDI_HIST[iso] && CDI_HIST[iso] > 1) {
-        // dado real BCB — só usa se fator > 1 (taxa positiva, não zero)
-        fd = CDI_HIST[iso];
-      } else {
-        // fallback: estima com Selic * 0,999 / 252 d.u.
-        fd = Math.pow(1 + selicEm(iso) * 0.999 / 100, 1/252);
-      }
+    if (ehDiaUtil(iso)) {
+      const fd = (CDI_HIST[iso] && CDI_HIST[iso] > 1)
+        ? CDI_HIST[iso]
+        : Math.pow(1 + selicEm(iso) * 0.999 / 100, 1/252);
       fator *= Math.pow(fd, pct);
     }
     cur.setDate(cur.getDate() + 1);
@@ -527,12 +529,11 @@ function calcCDIpct(dataInicioISO, pct) {
   return fator - 1;
 }
 
-// CDI simples (sem %) — para Selic+ spread
 function calcCDIsimples(dataInicioISO) {
   const hoje = new Date(); hoje.setHours(0,0,0,0);
   let cur    = new Date(proximoDiaUtil(dataInicioISO) + 'T12:00:00');
   let fator  = 1;
-  while (cur < hoje) {
+  while (cur <= hoje) {
     const iso = cur.toISOString().slice(0,10);
     if (ehDiaUtil(iso)) {
       fator *= (CDI_HIST[iso] && CDI_HIST[iso] > 1)
@@ -835,18 +836,41 @@ carregar();
 document.getElementById('cf-compra').value = new Date().toISOString().slice(0,10);
 atualizarLive();
 
+// ── Ativo de TESTE fixo (remover após validar) ──
+// LCI BRB - ABR/2026 | 115% CDI | Corretora: R$1.143,51 | Rend: R$20,51 | Ret: 1,83%
+const TESTE = { nome:'[TESTE] LCI BRB - ABR/2026', tipo:'pre_iso', compra:'2026-03-18', venc:'2026-04-30', taxa:115, valor:1122.99 };
+// Calcula via nossa fórmula (sem BCB — só Selic 14,75% e feriados B3)
+function calcTeste() {
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const pct  = TESTE.taxa / 100;
+  const fd   = Math.pow(1 + 14.75 * 0.999 / 100, 1/252);
+  let cur    = new Date(proximoDiaUtil(TESTE.compra) + 'T12:00:00');
+  let fator  = 1;
+  while (cur <= hoje) {
+    if (ehDiaUtil(cur.toISOString().slice(0,10))) fator *= Math.pow(fd, pct);
+    cur.setDate(cur.getDate() + 1);
+  }
+  const rend = TESTE.valor * (fator - 1);
+  const va   = TESTE.valor + rend;
+  const ret  = (rend / TESTE.valor) * 100;
+  const el   = document.getElementById('teste-resultado');
+  if (el) el.innerHTML =
+    `<strong>${TESTE.nome}</strong> — 115% CDI | Compra: 18/03/2026<br>` +
+    `Nosso cálculo: <strong>R$ ${fmt(va)}</strong> | Rend: R$ ${fmt(rend)} | Ret: ${ret.toFixed(2).replace('.',',')}%<br>` +
+    `<span style="color:var(--text2)">Corretora: R$ 1.143,51 | R$ 20,51 | 1,83% — ` +
+    `Dif: <strong style="color:${Math.abs(1143.51-va)<1?'var(--green)':'var(--amber)'}">R$ ${(1143.51-va).toFixed(2)}</strong></span>`;
+}
+
 async function init() {
-  await carregarDados(); // Focus + Copom
+  await carregarDados();
+
+  // Roda o teste fixo assim que Focus/Copom estão disponíveis
+  calcTeste();
 
   if (carteira.length) {
-    // Mostra carteira com estimativa enquanto busca BCB
     renderCarteira();
-
-    // Busca histórico real a partir da compra mais antiga
     const minData = carteira.reduce((m, ap) => ap.compra < m ? ap.compra : m, carteira[0].compra);
     await carregarHistorico(minData);
-
-    // Re-renderiza com dados reais
     renderCarteira();
   }
 }
