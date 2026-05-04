@@ -1,5 +1,5 @@
 {
-  "selic": 14.64,
+  "selic": 14.4,
   "selicMeta": 14.5,
   "selicProjetada": 13.0,
   "ipca": 4.14,
@@ -78,7 +78,7 @@
       "realizada": false
     }
   ],
-  "atualizadoEm": "04/05/2026 às 08:05h (horário de Brasília)",
-  "atualizadoEmISO": "2026-05-04T11:05:46Z",
+  "atualizadoEm": "04/05/2026 às 18:54h (horário de Brasília)",
+  "atualizadoEmISO": "2026-05-04T21:54:05Z",
   "erros": []
 }
