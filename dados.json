@@ -78,7 +78,11 @@
       "realizada": false
     }
   ],
-  "atualizadoEm": "13/05/2026 às 08:30h (horário de Brasília)",
-  "atualizadoEmISO": "2026-05-13T11:30:39Z",
-  "erros": []
+  "atualizadoEm": "13/05/2026 às 19:04h (horário de Brasília)",
+  "atualizadoEmISO": "2026-05-13T22:04:23Z",
+  "erros": [
+    "selic: list index out of range",
+    "selic_meta: list index out of range",
+    "ipca: list index out of range"
+  ]
 }
