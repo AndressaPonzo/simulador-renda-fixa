@@ -1,6 +1,6 @@
 {
   "selic": 14.4,
-  "selicMeta": 14.5,
+  "selicMeta": 14.25,
   "selicProjetada": 13.0,
   "ipca": 4.72,
   "focusSelic": [],
@@ -9,76 +9,76 @@
   "copomCalendario": [
     {
       "data": "2026-04-29",
-      "selic": 14.5,
+      "selic": 14.25,
       "realizada": true
     },
     {
       "data": "2026-06-17",
-      "selic": 14.5,
+      "selic": 14.25,
       "realizada": false
     },
     {
       "data": "2026-08-05",
-      "selic": 14.5,
+      "selic": 14.25,
       "realizada": false
     },
     {
       "data": "2026-09-16",
-      "selic": 14.5,
+      "selic": 14.25,
       "realizada": false
     },
     {
       "data": "2026-11-04",
-      "selic": 14.5,
+      "selic": 14.25,
       "realizada": false
     },
     {
       "data": "2026-12-09",
-      "selic": 14.5,
+      "selic": 14.25,
       "realizada": false
     },
     {
       "data": "2027-02-03",
-      "selic": 14.5,
+      "selic": 14.25,
       "realizada": false
     },
     {
       "data": "2027-03-17",
-      "selic": 14.5,
+      "selic": 14.25,
       "realizada": false
     },
     {
       "data": "2027-05-05",
-      "selic": 14.5,
+      "selic": 14.25,
       "realizada": false
     },
     {
       "data": "2027-06-16",
-      "selic": 14.5,
+      "selic": 14.25,
       "realizada": false
     },
     {
       "data": "2027-07-28",
-      "selic": 14.5,
+      "selic": 14.25,
       "realizada": false
     },
     {
       "data": "2027-09-15",
-      "selic": 14.5,
+      "selic": 14.25,
       "realizada": false
     },
     {
       "data": "2027-11-03",
-      "selic": 14.5,
+      "selic": 14.25,
       "realizada": false
     },
     {
       "data": "2027-12-08",
-      "selic": 14.5,
+      "selic": 14.25,
       "realizada": false
     }
   ],
-  "atualizadoEm": "17/06/2026 às 09:51h (horário de Brasília)",
-  "atualizadoEmISO": "2026-06-17T12:51:47Z",
+  "atualizadoEm": "17/06/2026 às 19:40h (horário de Brasília)",
+  "atualizadoEmISO": "2026-06-17T22:40:46Z",
   "erros": []
 }
