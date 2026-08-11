@@ -2,7 +2,7 @@
   "selic": 14.02,
   "selicMeta": 14.0,
   "selicProjetada": 13.0,
-  "ipca": 4.64,
+  "ipca": 4.44,
   "focusSelic": [],
   "focusIPCA": [],
   "focusData": "",
@@ -78,7 +78,7 @@
       "realizada": false
     }
   ],
-  "atualizadoEm": "11/08/2026 às 07:00h (horário de Brasília)",
-  "atualizadoEmISO": "2026-08-11T10:00:13Z",
+  "atualizadoEm": "11/08/2026 às 18:36h (horário de Brasília)",
+  "atualizadoEmISO": "2026-08-11T21:36:02Z",
   "erros": []
 }
