@@ -78,11 +78,7 @@
       "realizada": false
     }
   ],
-  "atualizadoEm": "02/10/2026 às 21:04h (horário de Brasília)",
-  "atualizadoEmISO": "2026-10-03T00:04:01Z",
-  "erros": [
-    "selic: list index out of range",
-    "selic_meta: list index out of range",
-    "ipca: list index out of range"
-  ]
+  "atualizadoEm": "05/10/2026 às 14:59h (horário de Brasília)",
+  "atualizadoEmISO": "2026-10-05T17:59:09Z",
+  "erros": []
 }
