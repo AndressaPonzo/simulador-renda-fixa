@@ -78,7 +78,9 @@
       "realizada": false
     }
   ],
-  "atualizadoEm": "06/11/2026 às 21:30h (horário de Brasília)",
-  "atualizadoEmISO": "2026-11-07T00:30:56Z",
-  "erros": []
+  "atualizadoEm": "09/11/2026 às 16:31h (horário de Brasília)",
+  "atualizadoEmISO": "2026-11-09T19:31:29Z",
+  "erros": [
+    "selic_meta: [Errno 2] No such file or directory: 'selic_meta_raw.json'"
+  ]
 }
